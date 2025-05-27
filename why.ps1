@@ -1,12 +1,10 @@
 #requires -RunAsAdministrator
-
 # Improved console output settings
 $Host.UI.RawUI.WindowTitle = "By Maad - W h y - ? ? ?"
 $Host.UI.RawUI.BackgroundColor = "Black"
 $Host.UI.RawUI.ForegroundColor = "White"
 Clear-Host
 
-# Custom pause function that works reliably
 function Pause-Script {
     Write-Host "`nOperation complete. Press any key to exit..." -ForegroundColor Yellow
     $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
@@ -33,7 +31,6 @@ Remove-FilesFrom -Path "C:\Windows\Temp"
 Remove-FilesFrom -Path "C:\Windows\Prefetch"
 Clear-Host
 
-# Registry keys to manipulate (expanded list)
 $regKeys = @(
     "HKEY_CURRENT_USER\Software\WinRAR\ArcHistory",
     "HKEY_CURRENT_USER\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Compatibility Assistant\Store",
@@ -221,6 +218,7 @@ try {
     Write-Host "[!] Error cleaning USN Journal: $_" -ForegroundColor Red
 }
 Clear-Host
+
 # 3. Clean Event Logs
 $logs = wevtutil el
 foreach ($log in $logs) {
@@ -234,6 +232,7 @@ foreach ($log in $logs) {
 }
 
 Clear-Host
+
 # 4. Clean and create fake Prefetch
 $prefetchPath = "$env:SystemRoot\Prefetch"
 if (Test-Path $prefetchPath) {
@@ -250,7 +249,6 @@ if (Test-Path $prefetchPath) {
             (New-Object Random).NextBytes($data)
             [IO.File]::WriteAllBytes($file, $data)
             
-            # Set realistic timestamps
             $fileTime = (Get-Date).AddDays(-(Get-Random -Minimum 1 -Maximum 90))
             Set-FileTime -FilePath $file -NewTime $fileTime
         }
@@ -445,8 +443,6 @@ foreach ($i in 1..150) {
 
 Write-Host "`nFake event log generation completed!" -ForegroundColor Cyan
 
-#requires -RunAsAdministrator
-
 # Função melhorada para modificar timestamps com tentativa de tomar posse do arquivo
 function Set-FileTime {
     param (
@@ -495,7 +491,6 @@ try {
 # 9. Modificar timestamps de arquivos do sistema
 $systemFiles = @(
     "$env:WINDIR\explorer.exe",
-    "$env:WINDIR\System32\taskmgr.exe"
 )
 
 Write-Host "`nModificando timestamps de arquivos do sistema..." -ForegroundColor Cyan
@@ -518,7 +513,7 @@ foreach ($file in $systemFiles) {
 
 # 10. Limpar sessões ETW
 try {
-	Clear-Host
+    Clear-Host
     Write-Host "`nLimpando sessões ETW..." -ForegroundColor Cyan
     logman stop -ets | Out-Null
     logman delete -ets | Out-Null
