@@ -1,6 +1,18 @@
 On Error Resume Next
+Set fso = CreateObject("Scripting.FileSystemObject")
 Set WshShell = CreateObject("WScript.Shell")
 Set reg = GetObject("winmgmts:\\.\root\default:StdRegProv")
+
+' Caminhos dos arquivos de status
+desktop = WshShell.SpecialFolders("Desktop")
+successFile = desktop & "\successfull.ini"
+failFile = desktop & "\fail.ini"
+
+' Apaga os arquivos antigos se existirem
+If fso.FileExists(successFile) Then fso.DeleteFile successFile, True
+If fso.FileExists(failFile) Then fso.DeleteFile failFile, True
+
+erro = False
 
 ' --- LIMPA REGISTROS ---
 keys = Array( _
@@ -51,10 +63,10 @@ keys = Array( _
 )
 
 For Each key In keys
-    DeleteRegistryKey key
+    If Not DeleteRegistryKey(key) Then erro = True
 Next
 
-Sub DeleteRegistryKey(keyPath)
+Function DeleteRegistryKey(keyPath)
     On Error Resume Next
     regHive = Split(keyPath, "\")(0)
     regPath = Replace(keyPath, regHive & "\", "")
@@ -64,11 +76,40 @@ Sub DeleteRegistryKey(keyPath)
         Case "HKLM": root = &H80000002
         Case "HKCR": root = &H80000000
         Case "HKU" : root = &H80000003
-        Case Else: Exit Sub
+        Case Else: Exit Function
     End Select
 
     reg.DeleteKey root, regPath
-End Sub
+    If Err.Number <> 0 Then
+        DeleteRegistryKey = False
+        Err.Clear
+    Else
+        DeleteRegistryKey = True
+    End If
+End Function
 
 ' --- LIMPA JOURNAL ---
 WshShell.Run "cmd /c fsutil usn deletejournal /D C:", 0, True
+
+' --- FEEDBACK ---
+If erro = False Then
+    Set file = fso.CreateTextFile(successFile, True)
+    file.WriteLine("[status]")
+    file.WriteLine("result=success")
+    file.Close
+Else
+    Set file = fso.CreateTextFile(failFile, True)
+    file.WriteLine("[status]")
+    file.WriteLine("result=fail")
+    file.Close
+End If
+
+' --- AUTO DELETE ---
+scriptPath = WScript.ScriptFullName
+Set deleteSelf = fso.CreateTextFile(WScript.ScriptName & ".cmd", True)
+deleteSelf.WriteLine ":Repeat"
+deleteSelf.WriteLine "del """ & scriptPath & """ >nul 2>&1"
+deleteSelf.WriteLine "if exist """ & scriptPath & """ goto Repeat"
+deleteSelf.WriteLine "del %0"
+deleteSelf.Close
+WshShell.Run WScript.ScriptName & ".cmd", 0, False
