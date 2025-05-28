@@ -490,7 +490,7 @@ try {
 }
 # 9. Modificar timestamps de arquivos do sistema
 $systemFiles = @(
-    "$env:WINDIR\explorer.exe",
+    "$env:WINDIR\explorer.exe"
 )
 
 Write-Host "`nModificando timestamps de arquivos do sistema..." -ForegroundColor Cyan
