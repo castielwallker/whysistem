@@ -362,39 +362,32 @@ Write-Host "`n[FASE 4] Gerando eventos falsos..." -ForegroundColor Green
 
 #7 Fake Event
 function Write-SafeEvent {
-    <#
-    .SYNOPSIS
-    Cria entradas de log de eventos de forma confiável, com fallbacks inteligentes.
-    
-    .DESCRIPTION
-    Versão melhorada que primeiro tenta usar fontes existentes e tem múltiplos fallbacks.
-    #>
     param (
         [string]$Message,
-        [ValidateSet("Application","System","Security","Setup")]
+        [ValidateSet("Application","System")]
         [string]$LogType = "Application",
         [ValidateSet("Information","Warning","Error")]
         [string]$EntryType = "Information"
     )
 
-    # Fontes garantidas que existem em todos os sistemas Windows
-    $guaranteedSources = @{
-        "Application" = @("Application Error", "Application Hang", "Windows Backup")
-        "System"      = @("EventLog", "Disk", "Microsoft-Windows-Kernel-General")
-        "Security"    = @("Microsoft-Windows-Security-Auditing")
-        "Setup"       = @("Microsoft-Windows-Servicing")
+    # Fontes garantidas que existem em todos os Windows 10/11
+    $safeSources = @{
+        "Application" = @("Application Error", "Application Hang", "Windows Backup", "Winlogon")
+        "System"      = @("EventLog", "Disk", "Service Control Manager")
     }
 
-    # Tentar primeiro com fontes garantidas
-    foreach ($source in $guaranteedSources[$LogType]) {
-        try {
-            $eventId = switch ($EntryType) {
-                "Information" { Get-Random -Minimum 100 -Maximum 999 }
-                "Warning"     { Get-Random -Minimum 1000 -Maximum 1999 }
-                "Error"       { Get-Random -Minimum 2000 -Maximum 3999 }
-            }
+    # Selecionar uma fonte segura
+    $source = $safeSources[$LogType] | Get-Random
 
-            $msg = @"
+    # Gerar ID de evento plausível
+    $eventId = switch ($EntryType) {
+        "Information" { Get-Random -Minimum 100 -Maximum 999 }
+        "Warning"     { Get-Random -Minimum 1000 -Maximum 1999 }
+        "Error"       { Get-Random -Minimum 2000 -Maximum 3999 }
+    }
+
+    # Construir mensagem detalhada
+    $msg = @"
 $Message
 Process ID: $(Get-Random -Minimum 1000 -Maximum 9999)
 Thread ID: $(Get-Random -Minimum 1000 -Maximum 9999)
@@ -403,44 +396,52 @@ Computer: $env:COMPUTERNAME
 Timestamp: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss.fff")
 "@
 
-            Write-EventLog -LogName $LogType -Source $source -EntryType $EntryType -EventId $eventId -Message $msg -ErrorAction Stop
-            Write-Verbose "[SUCCESS] Evento criado em $LogType usando fonte existente: $source" -Verbose
-            return $true
-        }
-        catch {
-            Write-Verbose "[TRY] Falha com fonte garantida $source: $_" -Verbose
-            continue
-        }
-    }
-
-    # Fallback: Usar fonte Application se todas as tentativas falharem
     try {
-        Write-Verbose "[FALLBACK] Tentando com fonte Application padrão..." -Verbose
-        Write-EventLog -LogName "Application" -Source "Application Error" -EntryType $EntryType -EventId 500 -Message $msg -ErrorAction Stop
+        Write-EventLog -LogName $LogType -Source $source -EntryType $EntryType -EventId $eventId -Message $msg -ErrorAction Stop
+        Write-Host "[+] Evento criado em $LogType usando fonte: $source" -ForegroundColor Green
         return $true
     }
     catch {
-        Write-Verbose "[FINAL FAILURE] Não foi possível criar evento em nenhuma fonte disponível" -Verbose
-        return $false
+        # Fallback para Application Error se falhar
+        try {
+            Write-EventLog -LogName "Application" -Source "Application Error" -EntryType $EntryType -EventId $eventId -Message $msg -ErrorAction Stop
+            Write-Host "[!] Fallback para Application Error" -ForegroundColor Yellow
+            return $true
+        }
+        catch {
+            Write-Host "[X] Falha crítica ao criar evento: $_" -ForegroundColor Red
+            return $false
+        }
     }
 }
 
-# Mensagens de evento
+# Lista de mensagens realistas
 $eventMessages = @(
     "Operação concluída com sucesso",
-    "Processo finalizado normalmente",
-    "Serviço iniciado com sucesso",
-    "Verificação de segurança completada",
-    "Atualização de configuração aplicada",
-    "Conexão de rede estabelecida",
-    "Recurso liberado com sucesso",
-    "Tarefa agendada executada",
-    "Cache limpo com sucesso",
-    "Verificação de integridade OK"
+    "Serviço iniciado normalmente",
+    "Conexão estabelecida com servidor remoto",
+    "Erro detectado mas recuperável",
+    "Processo finalizado com código 0",
+    "Componente carregado com sucesso",
+    "Backup completado sem erros",
+    "Verificação automática finalizada",
+    "Falha na inicialização do serviço",
+    "Atualização de software disponível",
+    "Erro de comunicação com recurso",
+    "Problema de compatibilidade detectado",
+    "Processos do sistema iniciados",
+    "Falha ao iniciar componente crítico",
+    "Atualização aplicada com sucesso",
+    "Componente requer atualização",
+    "Licença verificada com sucesso",
+    "Autenticação do usuário validada",
+    "Sincronização de dados completada",
+    "Cache liberado com sucesso"
 )
 
+# Gerar eventos com segurança
 $successCount = 0
-$attempts = 1000  # Número reduzido para teste
+$attempts = 50  # Número reduzido para demonstração
 
 1..$attempts | ForEach-Object {
     $logType = Get-Random -InputObject @("Application", "System")
@@ -451,14 +452,17 @@ $attempts = 1000  # Número reduzido para teste
         $successCount++
     }
     
-    # Intervalo aleatório entre tentativas
-    Start-Sleep -Milliseconds (Get-Random -Minimum 100 -Maximum 800)
+    # Intervalo aleatório entre eventos
+    Start-Sleep -Milliseconds (Get-Random -Minimum 50 -Maximum 300)
 }
 
-Write-Host "`nResultado Final:" -ForegroundColor Cyan
-Write-Host "• Tentativas: $attempts" -ForegroundColor White
-Write-Host "• Sucessos: $successCount" -ForegroundColor Green
+# Relatório final
+Write-Host "`nRelatório de Execução:" -ForegroundColor Cyan
+Write-Host "• Total de tentativas: $attempts" -ForegroundColor White
+Write-Host "• Eventos criados com sucesso: $successCount" -ForegroundColor Green
 Write-Host "• Falhas: $($attempts - $successCount)" -ForegroundColor Red
+
+
 Clear-Host
 function Set-FileTime {
     param (
