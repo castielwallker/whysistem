@@ -1,18 +1,16 @@
 #requires -RunAsAdministrator
-# Improved console output settings
 $Host.UI.RawUI.WindowTitle = "W h y"
 $Host.UI.RawUI.BackgroundColor = "Black"
 $Host.UI.RawUI.ForegroundColor = "White"
 Clear-Host
 
 function Pause-Script {
-    Write-Host "`nOperation complete. Press any key to exit..." -ForegroundColor Yellow
+    Write-Host "`nFinalizado. Pressione para sair..." -ForegroundColor White
     $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 }
 
 function Remove-FilesFrom {
     param([string]$Path)
-
     if (Test-Path $Path) {
         try {
             Get-ChildItem -Path $Path -Recurse -Force -ErrorAction SilentlyContinue | 
@@ -22,7 +20,7 @@ function Remove-FilesFrom {
             Write-Host "[!] - Erro ao limpar: $Path" -ForegroundColor Red
         }
     } else {
-        Write-Host "[!] - Caminho não encontrado: $Path" -ForegroundColor Yellow
+        Write-Host "[!] - Caminho não encontrado: $Path" -ForegroundColor Red
     }
 }
 Remove-FilesFrom -Path $env:TEMP
@@ -105,7 +103,7 @@ $programs = @(
 
 $baseDir = "C:\Program Files\ProgramSystem"
 $createdDirs = @()
-Write-Host "Verificando/Criando diretórios..." -ForegroundColor Cyan
+Write-Host "Verificando/Criando diretórios..." -ForegroundColor Green
 foreach ($program in $programs) {
     $dirPath = Join-Path -Path $baseDir -ChildPath $program
     
@@ -120,11 +118,11 @@ foreach ($program in $programs) {
         }
     }
     else {
-        Write-Host "[-] Diretório já existe: $dirPath" -ForegroundColor Blue
+        Write-Host "[-] Diretório já existe: $dirPath" -ForegroundColor Green
     }
 }
 
-Write-Host "`nSimulando execução de programas..." -ForegroundColor Cyan
+Write-Host "`nSimulando execução de programas..." -ForegroundColor Green
 foreach ($dir in $createdDirs) {
     try {
         $logFile = Join-Path -Path $dir -ChildPath "execution.log"
@@ -148,7 +146,7 @@ SessionID: $([System.Diagnostics.Process]::GetCurrentProcess().SessionId)
     }
 }
 
-Write-Host "`nIniciando auto-limpeza..." -ForegroundColor Yellow
+Write-Host "`nIniciando auto-limpeza..." -ForegroundColor Green
 foreach ($dir in $createdDirs) {
     try {
         if (Test-Path -Path $dir) {
@@ -171,18 +169,18 @@ foreach ($dir in $createdDirs) {
 }
 
 # 4. Limpar logs do sistema
-Write-Host "`nLimpando logs do sistema..." -ForegroundColor Cyan
+Write-Host "`nLimpando logs do sistema..." -ForegroundColor Green
 try {
     wevtutil cl "Application" | Out-Null
     wevtutil cl "System" | Out-Null
     Write-Host "[+] - Logs do sistema limpos" -ForegroundColor Green
 }
 catch {
-    Write-Host "[!] - Não foi possível limpar todos os logs: $_" -ForegroundColor Yellow
+    Write-Host "[!] - Não foi possível limpar todos os logs: $_" -ForegroundColor Red
 }
 Clear-Host
 Write-Host "[+] - Processo concluído!" -ForegroundColor Green
-Write-Host "[+] - Diretórios criados e removidos: $($createdDirs.Count)" -ForegroundColor White
+Write-Host "[+] - Diretórios criados e removidos: $($createdDirs.Count)" -ForegroundColor Green
 
 function Set-FileTime {
     param (
