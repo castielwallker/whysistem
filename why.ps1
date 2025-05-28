@@ -350,7 +350,7 @@ foreach ($path in $executionArtifacts) {
                 $fileTime = (Get-Date).AddDays(-(Get-Random -Minimum 1 -Maximum 60))
                 Set-FileTime -FilePath $filePath -NewTime $fileTime
             }
-            Write-Host "[+] - Criação de Artefatos em $path" -ForegroundColor DarkGray
+            Write-Host "[+] - Criação de Artefatos em $path" -ForegroundColor Green
         }
         catch {
             Write-Host "[!] - Error de criação de artefatos em $path : $_" -ForegroundColor Red
@@ -361,105 +361,78 @@ Clear-Host
 Write-Host "`n[FASE 4] Gerando eventos falsos..." -ForegroundColor Green
 
 #7 Fake Event
-function Write-SafeEvent {
+function nonEvent {
     param (
+        [string]$Program,
         [string]$Message,
-        [ValidateSet("Application","System")]
-        [string]$LogType = "Application",
-        [ValidateSet("Information","Warning","Error")]
-        [string]$EntryType = "Information"
+        [string]$LogType = "Application"
     )
 
-    # Fontes garantidas que existem em todos os Windows 10/11
-    $safeSources = @{
-        "Application" = @("Application Error", "Application Hang", "Windows Backup", "Winlogon")
-        "System"      = @("EventLog", "Disk", "Service Control Manager")
-    }
-
-    # Selecionar uma fonte segura
-    $source = $safeSources[$LogType] | Get-Random
-
-    # Gerar ID de evento plausível
-    $eventId = switch ($EntryType) {
-        "Information" { Get-Random -Minimum 100 -Maximum 999 }
-        "Warning"     { Get-Random -Minimum 1000 -Maximum 1999 }
-        "Error"       { Get-Random -Minimum 2000 -Maximum 3999 }
-    }
-
-    # Construir mensagem detalhada
-    $msg = @"
-$Message
-Process ID: $(Get-Random -Minimum 1000 -Maximum 9999)
-Thread ID: $(Get-Random -Minimum 1000 -Maximum 9999)
-User: $env:USERNAME
-Computer: $env:COMPUTERNAME
-Timestamp: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss.fff")
-"@
+    $eventId = Get-Random -Minimum 1000 -Maximum 9999
+    $source = "$Program $(Get-Random -InputObject @('Service','Provider','Manager','Host','Daemon')) $(Get-Date -Format HHmmssfff)"
+    $msg = "$Message`n`nProcess ID: $(Get-Random -Minimum 1000 -Maximum 9999)`nThread ID: $(Get-Random -Minimum 1000 -Maximum 9999)`nUser: $env:USERNAME`nComputer: $env:COMPUTERNAME"
 
     try {
-        Write-EventLog -LogName $LogType -Source $source -EntryType $EntryType -EventId $eventId -Message $msg -ErrorAction Stop
-        Write-Host "[+] Evento criado em $LogType usando fonte: $source" -ForegroundColor Green
-        return $true
+        New-EventLog -LogName $LogType -Source $source -ErrorAction SilentlyContinue
+        Write-EventLog -LogName $LogType -Source $source -EntryType Information -EventId $eventId -Message $msg
+        Write-Host "[+] - Criação de Evento em $LogType : $source" -ForegroundColor Green
     }
     catch {
-        try {
-            Write-EventLog -LogName "Application" -Source "Application Error" -EntryType $EntryType -EventId $eventId -Message $msg -ErrorAction Stop
-            Write-Host "[!] Fallback para Application Error" -ForegroundColor Yellow
-            return $true
-        }
-        catch {
-            Write-Host "[X] Falha crítica ao criar evento: $($_.Exception.Message)" -ForegroundColor Red
-            return $false
-        }
+        #Write-Host "[!] - Error creating event: $_" -ForegroundColor Red
     }
 }
 
-# Lista de mensagens realistas
 $eventMessages = @(
-    "Operação concluída com sucesso",
-    "Serviço iniciado normalmente",
-    "Conexão estabelecida com servidor remoto",
-    "Erro detectado mas recuperável",
-    "Processo finalizado com código 0",
-    "Componente carregado com sucesso",
-    "Backup completado sem erros",
-    "Verificação automática finalizada",
-    "Falha na inicialização do serviço",
-    "Atualização de software disponível",
-    "Erro de comunicação com recurso",
-    "Problema de compatibilidade detectado",
-    "Processos do sistema iniciados",
-    "Falha ao iniciar componente crítico",
-    "Atualização aplicada com sucesso",
-    "Componente requer atualização",
-    "Licença verificada com sucesso",
-    "Autenticação do usuário validada",
-    "Sincronização de dados completada",
-    "Cache liberado com sucesso"
+    "Application started successfully",
+    "Update completed successfully",
+    "Connection established to server",
+    "Recoverable error detected",
+    "Process terminated normally",
+    "Plugin loaded successfully",
+    "Backup completed",
+    "Automatic verification completed",
+    "Service failed to start",
+    "Program requires update",
+    "Connection error",
+    "Architecture error detected",
+    "Windows processes started with errors",
+    "System failed starting svchost",
+    "Update successful",
+    "Search bar needs update",
+    "License verification completed",
+    "User authentication successful",
+    "Data synchronization completed",
+    "Cache cleared",
+    "Configuration saved",
+    "New version available",
+    "Security scan completed",
+    "Firewall rule applied",
+    "Driver loaded successfully",
+    "Network connection lost",
+    "Reconnecting to service...",
+    "Initialization complete",
+    "Session started",
+    "Session ended",
+    "Data validation failed",
+    "Retrying operation...",
+    "Operation timed out",
+    "Resource allocation failed",
+    "Memory optimization completed",
+    "Disk cleanup initiated"
 )
 
-$successCount = 0
-$attempts = 132 
+$eventLogTypes = @("Application", "System")
 
-1..$attempts | ForEach-Object {
-    $logType = Get-Random -InputObject @("Application", "System")
-    $entryType = Get-Random -InputObject @("Information", "Warning", "Error")
+foreach ($i in 1..150) {
+    $program = $programs | Get-Random
+    $logType = $eventLogTypes | Get-Random
     $message = $eventMessages | Get-Random
-
-    if (Write-SafeEvent -Message $message -LogType $logType -EntryType $entryType) {
-        $successCount++
-    }
-    
-    Start-Sleep -Milliseconds (Get-Random -Minimum 50 -Maximum 300)
+    nonEvent -Program $program -Message $message -LogType $logType
 }
-
-# Relatório final
-Write-Host "`nRelatório de Execução:" -ForegroundColor White
-Write-Host "[+] - Total de tentativas: $attempts" -ForegroundColor White
-Write-Host "[+] - Eventos criados com sucesso: $successCount" -ForegroundColor Green
-Write-Host "[!] - Falhas: $($attempts - $successCount)" -ForegroundColor Red
-
 Clear-Host
+Write-Host "`n[+] - Falso Eventos Log Finalizado!" -ForegroundColor Green
+Clear-Host
+
 function Set-FileTime {
     param (
         [string]$FilePath,
