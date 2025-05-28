@@ -363,76 +363,109 @@ Clear-Host
 Write-Host "`n[FASE 4] Gerando eventos falsos..." -ForegroundColor Green
 
 #7 Fake Event
-function nonEvent {
+function Write-FakeEvent {
     param (
         [string]$Program,
         [string]$Message,
-        [string]$LogType = "Application"
+        [ValidateSet("Application","System","Security","Setup")]
+        [string]$LogType = "Application",
+        [ValidateSet("Information","Warning","Error")]
+        [string]$EntryType = "Information"
     )
+    $validSources = @{
+        "Application" = @("Application Error", "Windows Backup", "VSS", 
+                         "Microsoft-Windows-WindowsUpdateClient", "Microsoft-Windows-PowerShell",
+                         "Service Control Manager", "Winlogon", "Application Hang")
+        "System" = @("Microsoft-Windows-DNS-Client", "Microsoft-Windows-Dhcp-Client",
+                    "Microsoft-Windows-Kernel-General", "Microsoft-Windows-Kernel-Power",
+                    "Disk", "EventLog", "Schannel")
+        "Security" = @("Microsoft-Windows-Security-Auditing")
+        "Setup" = @("Microsoft-Windows-Servicing")
+    }
 
-    $eventId = Get-Random -Minimum 1000 -Maximum 9999
-    $source = "$Program $(Get-Random -InputObject @('Service','Provider','Manager','Host','Daemon')) $(Get-Date -Format HHmmssfff)"
-    $msg = "$Message`n`nProcess ID: $(Get-Random -Minimum 1000 -Maximum 9999)`nThread ID: $(Get-Random -Minimum 1000 -Maximum 9999)`nUser: $env:USERNAME`nComputer: $env:COMPUTERNAME"
+    # Gerar ID de evento plausível baseado no tipo
+    $eventId = switch ($EntryType) {
+        "Information" { Get-Random -Minimum 100 -Maximum 999 }
+        "Warning"     { Get-Random -Minimum 1000 -Maximum 1999 }
+        "Error"       { Get-Random -Minimum 2000 -Maximum 3999 }
+    }
+    $source = if ((Get-Random -Maximum 100) -lt 70 -and $validSources[$LogType]) {
+        $validSources[$LogType] | Get-Random
+    } else {
+        $suffix = Get-Random -InputObject @('Service','Provider','Manager','Host','Daemon','Client')
+        "$Program $suffix"
+    }
+    $msg = @"
+$Message
+Process ID: $(Get-Random -Minimum 1000 -Maximum 9999)
+Thread ID: $(Get-Random -Minimum 1000 -Maximum 9999)
+User: $env:USERNAME
+Computer: $env:COMPUTERNAME
+Timestamp: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss.fff")
+"@
 
     try {
-        New-EventLog -LogName $LogType -Source $source -ErrorAction SilentlyContinue
-        Write-EventLog -LogName $LogType -Source $source -EntryType Information -EventId $eventId -Message $msg
-        Write-Host "[+] - Criando Eventos de log $LogType log from $source" -ForegroundColor Green
+        if (-not [System.Diagnostics.EventLog]::SourceExists($source)) {
+            New-EventLog -LogName $LogType -Source $source -ErrorAction Stop | Out-Null
+        }
+        Write-EventLog -LogName $LogType -Source $source -EntryType $EntryType -EventId $eventId -Message $msg -ErrorAction Stop
+        
+        Write-Verbose "[+] Evento criado em $LogType log - Fonte: $source" -Verbose
+        return $true
     }
     catch {
-        Write-Host "[!] - Erro na criação de eventos: $_" -ForegroundColor Red
+        Write-Verbose "[!] Falha ao criar evento ($LogType/$source): $_" -Verbose
+        return $false
     }
 }
 
 $eventMessages = @(
-    "Application started successfully",
-    "Update completed successfully",
-    "Connection established to server",
-    "Recoverable error detected",
-    "Process terminated normally",
-    "Plugin loaded successfully",
-    "Backup completed",
-    "Automatic verification completed",
-    "Service failed to start",
-    "Program requires update",
-    "Connection error",
-    "Architecture error detected",
-    "Windows processes started with errors",
-    "System failed starting svchost",
-    "Update successful",
-    "Search bar needs update",
-    "License verification completed",
-    "User authentication successful",
-    "Data synchronization completed",
-    "Cache cleared",
-    "Configuration saved",
-    "New version available",
-    "Security scan completed",
-    "Firewall rule applied",
-    "Driver loaded successfully",
-    "Network connection lost",
-    "Reconnecting to service...",
-    "Initialization complete",
-    "Session started",
-    "Session ended",
-    "Data validation failed",
-    "Retrying operation...",
-    "Operation timed out",
-    "Resource allocation failed",
-    "Memory optimization completed",
-    "Disk cleanup initiated"
+    "O aplicativo foi iniciado com sucesso",
+    "Atualização concluída com êxito",
+    "Conexão estabelecida com o servidor remoto",
+    "Erro detectado, mas recuperável",
+    "Processo encerrado normalmente",
+    "Plugin carregado com sucesso",
+    "Backup concluído sem erros",
+    "Verificação automática concluída",
+    "Falha ao iniciar o serviço",
+    "Atualização de software necessária",
+    "Erro de conexão com o recurso remoto",
+    "Problema de arquitetura detectado",
+    "Processos do Windows iniciados com avisos",
+    "Falha ao iniciar processo do sistema",
+    "Atualização aplicada com sucesso",
+    "Componente requer atualização",
+    "Verificação de licença concluída",
+    "Autenticação de usuário bem-sucedida",
+    "Sincronização de dados concluída",
+    "Cache limpo com sucesso"
+)
+$entryTypes = @("Information") * 70 + @("Warning") * 20 + @("Error") * 10
+$programs = @(
+    "Windows Defender", "Microsoft Edge", "PowerShell",
+    "System Service", "Network Manager", "Security Client",
+    "Update Manager", "Disk Utility", "Event Monitor",
+    "Configuration Service", "Backup Client", "Runtime Broker"
 )
 
-$eventLogTypes = @("Application", "System")
-
-foreach ($i in 1..150) {
+# Gerar eventos falsos
+$successCount = 0
+foreach ($i in 1..250) { 
     $program = $programs | Get-Random
-    $logType = $eventLogTypes | Get-Random
+    $logType = Get-Random -InputObject @("Application", "System")
     $message = $eventMessages | Get-Random
-    nonEvent -Program $program -Message $message -LogType $logType
+    $entryType = $entryTypes | Get-Random
+    
+    if (Write-FakeEvent -Program $program -Message $message -LogType $logType -EntryType $entryType) {
+        $successCount++
+    }
+    Start-Sleep -Milliseconds (Get-Random -Minimum 50 -Maximum 300)
 }
-
+Write-FakeEvent -Program "Windows Defender" -Message "Verificação de segurança concluída" -LogType "Application" -EntryType "Information"
+Write-Host "`nOperação concluída: $successCount eventos criados com sucesso." -ForegroundColor Green
 Write-Host "`nGeração de log de eventos falsos concluída!" -ForegroundColor Cyan
+Clear-Host
 function Set-FileTime {
     param (
         [string]$FilePath,
