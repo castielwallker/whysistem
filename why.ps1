@@ -17,7 +17,7 @@ function Remove-FilesFrom {
         try {
             Get-ChildItem -Path $Path -Recurse -Force -ErrorAction SilentlyContinue | 
                 Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
-            Write-Host "[•] - Limpou: $Path" -ForegroundColor Green
+            Write-Host "[+] - Limpou: $Path" -ForegroundColor Green
         } catch {
             Write-Host "[!] - Erro ao limpar: $Path" -ForegroundColor Red
         }
@@ -113,7 +113,7 @@ foreach ($program in $programs) {
         try {
             $null = New-Item -Path $dirPath -ItemType Directory -Force
             $createdDirs += $dirPath
-            Write-Host "[•] - Criado: $dirPath" -ForegroundColor Green
+            Write-Host "[+] - Criado: $dirPath" -ForegroundColor Green
         }
         catch {
             Write-Host "[!] - Falha ao criar $dirPath : $_" -ForegroundColor Red
@@ -141,7 +141,7 @@ SessionID: $([System.Diagnostics.Process]::GetCurrentProcess().SessionId)
         $null = New-Item -Path $fakeExe -ItemType File -Force
         (Get-Item $fakeExe).LastWriteTime = (Get-Date).AddHours(-1)
         
-        Write-Host "[•] - Simulado: $([System.IO.Path]::GetFileName($dir))" -ForegroundColor Green
+        Write-Host "[+] - Simulado: $([System.IO.Path]::GetFileName($dir))" -ForegroundColor Green
     }
     catch {
         Write-Host "[!] - Falha ao simular execução em $dir : $_" -ForegroundColor Red
@@ -153,7 +153,7 @@ foreach ($dir in $createdDirs) {
     try {
         if (Test-Path -Path $dir) {
             Remove-Item -Path $dir -Recurse -Force
-            Write-Host "[•] - Limpo: $dir" -ForegroundColor Green
+            Write-Host "[+] - Limpo: $dir" -ForegroundColor Green
         }
     }
     catch {
@@ -162,7 +162,7 @@ foreach ($dir in $createdDirs) {
         try {
             Start-Sleep -Seconds 1
             Remove-Item -Path $dir -Recurse -Force -ErrorAction Stop
-            Write-Host "[•] - Limpeza alternativa bem-sucedida: $dir" -ForegroundColor Green
+            Write-Host "[+] - Limpeza alternativa bem-sucedida: $dir" -ForegroundColor Green
         }
         catch {
             Write-Host "[!] - Não foi possível limpar $dir - Limpe manualmente" -ForegroundColor Red
@@ -175,14 +175,14 @@ Write-Host "`nLimpando logs do sistema..." -ForegroundColor Cyan
 try {
     wevtutil cl "Application" | Out-Null
     wevtutil cl "System" | Out-Null
-    Write-Host "[•] - Logs do sistema limpos" -ForegroundColor Green
+    Write-Host "[+] - Logs do sistema limpos" -ForegroundColor Green
 }
 catch {
     Write-Host "[!] - Não foi possível limpar todos os logs: $_" -ForegroundColor Yellow
 }
 Clear-Host
-Write-Host "[•] - Processo concluído!" -ForegroundColor Green
-Write-Host "[•] - Diretórios criados e removidos: $($createdDirs.Count)" -ForegroundColor White
+Write-Host "[+] - Processo concluído!" -ForegroundColor Green
+Write-Host "[+] - Diretórios criados e removidos: $($createdDirs.Count)" -ForegroundColor White
 
 function Set-FileTime {
     param (
@@ -208,7 +208,7 @@ Clear-Host
 # 2. Clean USN Journal
 try {
     fsutil usn deletejournal /D C: | Out-Null
-    Write-Host "[•] - USN Journal Limpo" -ForegroundColor Green
+    Write-Host "[+] - USN Journal Limpo" -ForegroundColor Green
 } catch {
     Write-Host "[!] - Error Limpeza USN Journal: $_" -ForegroundColor Red
 }
@@ -219,7 +219,7 @@ $logs = wevtutil el
 foreach ($log in $logs) {
     try { 
         wevtutil cl "$log" | Out-Null
-        Write-Host "[•] - Limpando log: $log" -ForegroundColor Green
+        Write-Host "[+] - Limpando log: $log" -ForegroundColor Green
     } 
     catch {
         Write-Host "[!] Error Limpeza log $log : $_" -ForegroundColor Red
@@ -233,7 +233,7 @@ $prefetchPath = "$env:SystemRoot\Prefetch"
 if (Test-Path $prefetchPath) {
     try {
         Remove-Item "$prefetchPath\*" -Force -Recurse -ErrorAction SilentlyContinue
-        Write-Host "[•] - Prefetch Limpo!" -ForegroundColor Green
+        Write-Host "[+] - Prefetch Limpo!" -ForegroundColor Green
         
         $prefetchCount = Get-Random -Minimum 50 -Maximum 150
         foreach ($prog in $programs | Get-Random -Count $prefetchCount) {
@@ -246,7 +246,7 @@ if (Test-Path $prefetchPath) {
             $fileTime = (Get-Date).AddDays(-(Get-Random -Minimum 1 -Maximum 90))
             Set-FileTime -FilePath $file -NewTime $fileTime
         }
-        Write-Host "[•] - Criando $prefetchCount Falsos Log" -ForegroundColor Green
+        Write-Host "[+] - Criando $prefetchCount Falsos Log" -ForegroundColor Green
     } 
     catch {
         Write-Host "[!] - Error Prefetch: $_" -ForegroundColor Red
@@ -287,11 +287,11 @@ foreach ($temp in $tempPaths) {
         $fileTime = (Get-Date).AddHours(-(Get-Random -Minimum 1 -Maximum 720))
         Set-FileTime -FilePath $filePath -NewTime $fileTime
         
-        Write-Host "[•] - Criando Falso Temp Files: $filePath" -ForegroundColor Green
+        Write-Host "[+] - Criando Falso Temp Files: $filePath" -ForegroundColor Green
     }
 }
 
-Write-Host "`n[•] - Geração de arquivos temporários falsos concluída!" -ForegroundColor Cyan
+Write-Host "`n[+] - Geração de arquivos temporários falsos concluída!" -ForegroundColor Cyan
 Clear-Host
 Write-Host "`n[FASE 3] Criando artefatos falsos..." -ForegroundColor Green
 
@@ -316,7 +316,7 @@ foreach ($temp in $tempPaths) {
                 $fileTime = (Get-Date).AddHours(-(Get-Random -Minimum 1 -Maximum 720))
                 Set-FileTime -FilePath $filePath -NewTime $fileTime
             }
-            Write-Host "[•] - Criando $tempFileCount Falso temp file no $temp" -ForegroundColor Green
+            Write-Host "[+] - Criando $tempFileCount Falso temp file no $temp" -ForegroundColor Green
         }
         catch {
             Write-Host "[!] - Error de criacao no temp $temp : $_" -ForegroundColor Red
@@ -352,7 +352,7 @@ foreach ($path in $executionArtifacts) {
                 $fileTime = (Get-Date).AddDays(-(Get-Random -Minimum 1 -Maximum 60))
                 Set-FileTime -FilePath $filePath -NewTime $fileTime
             }
-            Write-Host "[•] - Criação de Artefatos em $path" -ForegroundColor DarkGray
+            Write-Host "[+] - Criação de Artefatos em $path" -ForegroundColor DarkGray
         }
         catch {
             Write-Host "[!] - Error de criação de artefatos em $path : $_" -ForegroundColor Red
@@ -377,7 +377,7 @@ function nonEvent {
     try {
         New-EventLog -LogName $LogType -Source $source -ErrorAction SilentlyContinue
         Write-EventLog -LogName $LogType -Source $source -EntryType Information -EventId $eventId -Message $msg
-        Write-Host "[•] - Criando Eventos de log $LogType log from $source" -ForegroundColor Green
+        Write-Host "[+] - Criando Eventos de log $LogType log from $source" -ForegroundColor Green
     }
     catch {
         Write-Host "[!] - Erro na criação de eventos: $_" -ForegroundColor Red
@@ -461,14 +461,14 @@ function Set-FileTime {
 # 8. Reiniciar o Explorer de forma segura
 try {
     Clear-Host
-    Write-Host "[•] - Reiniciando processo Explorer..." -ForegroundColor Green
+    Write-Host "[+] - Reiniciando processo Explorer..." -ForegroundColor Green
     $explorerProcesses = Get-Process -Name explorer -ErrorAction SilentlyContinue
     if ($explorerProcesses) {
         $explorerProcesses | Stop-Process -Force
         Start-Sleep -Seconds 3
     }
     Start-Process "explorer.exe"
-    Write-Host "[•] - Explorer reiniciado com sucesso!" -ForegroundColor Green
+    Write-Host "[+] - Explorer reiniciado com sucesso!" -ForegroundColor Green
 } catch {
     Write-Host "[!] - Falha ao reiniciar o Explorer: $_" -ForegroundColor Red
 }
@@ -503,7 +503,7 @@ foreach ($file in $systemFiles) {
         $success = Set-FileTime -FilePath $file -NewTime $fileTime
         
         if ($success) {
-            Write-Host "[•] - Timestamps modificados para $file" -ForegroundColor Green
+            Write-Host "[+] - Timestamps modificados para $file" -ForegroundColor Green
         } else {
             Write-Host "[!] -  Não foi possível modificar $file" -ForegroundColor Red
         }
@@ -518,7 +518,7 @@ try {
     Write-Host "`nLimpando sessões ETW..." -ForegroundColor Cyan
     logman stop -ets | Out-Null
     logman delete -ets | Out-Null
-    Write-Host "[•] - Sessões ETW paradas e removidas com sucesso" -ForegroundColor Green
+    Write-Host "[+] - Sessões ETW paradas e removidas com sucesso" -ForegroundColor Green
 } catch {
     Write-Host "[!] - Falha ao limpar sessões ETW: $_" -ForegroundColor Red
 }
@@ -529,7 +529,7 @@ $newInstallDate = 1742761079
 if (Test-Path $regPath) {
     try {
         Set-ItemProperty -Path $regPath -Name "InstallDate" -Value $newInstallDate -Type DWord
-        Write-Host "[•] -  InstallDate alterado com sucesso para $newInstallDate (23/03/2025 21:17:59)" -ForegroundColor Green
+        Write-Host "[+] -  InstallDate alterado com sucesso para $newInstallDate (23/03/2025 21:17:59)" -ForegroundColor Green
     } catch {
         Write-Error "[!] - Erro ao alterar InstallDate: $_" -ForegroundColor Red
     }
