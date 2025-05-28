@@ -402,14 +402,13 @@ Timestamp: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss.fff")
         return $true
     }
     catch {
-        # Fallback para Application Error se falhar
         try {
             Write-EventLog -LogName "Application" -Source "Application Error" -EntryType $EntryType -EventId $eventId -Message $msg -ErrorAction Stop
             Write-Host "[!] Fallback para Application Error" -ForegroundColor Yellow
             return $true
         }
         catch {
-            Write-Host "[X] Falha crítica ao criar evento: $_" -ForegroundColor Red
+            Write-Host "[X] Falha crítica ao criar evento: $($_.Exception.Message)" -ForegroundColor Red
             return $false
         }
     }
@@ -439,9 +438,8 @@ $eventMessages = @(
     "Cache liberado com sucesso"
 )
 
-# Gerar eventos com segurança
 $successCount = 0
-$attempts = 50  # Número reduzido para demonstração
+$attempts = 132 
 
 1..$attempts | ForEach-Object {
     $logType = Get-Random -InputObject @("Application", "System")
@@ -452,16 +450,14 @@ $attempts = 50  # Número reduzido para demonstração
         $successCount++
     }
     
-    # Intervalo aleatório entre eventos
     Start-Sleep -Milliseconds (Get-Random -Minimum 50 -Maximum 300)
 }
 
 # Relatório final
-Write-Host "`nRelatório de Execução:" -ForegroundColor Cyan
-Write-Host "• Total de tentativas: $attempts" -ForegroundColor White
-Write-Host "• Eventos criados com sucesso: $successCount" -ForegroundColor Green
-Write-Host "• Falhas: $($attempts - $successCount)" -ForegroundColor Red
-
+Write-Host "`nRelatório de Execução:" -ForegroundColor White
+Write-Host "[+] - Total de tentativas: $attempts" -ForegroundColor White
+Write-Host "[+] - Eventos criados com sucesso: $successCount" -ForegroundColor Green
+Write-Host "[!] - Falhas: $($attempts - $successCount)" -ForegroundColor Red
 
 Clear-Host
 function Set-FileTime {
