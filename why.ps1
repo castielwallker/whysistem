@@ -363,39 +363,40 @@ Clear-Host
 Write-Host "`n[FASE 4] Gerando eventos falsos..." -ForegroundColor Green
 
 #7 Fake Event
-function Write-FakeEvent {
+function Write-SafeEvent {
+    <#
+    .SYNOPSIS
+    Cria entradas de log de eventos de forma confiável, com fallbacks inteligentes.
+    
+    .DESCRIPTION
+    Versão melhorada que primeiro tenta usar fontes existentes e tem múltiplos fallbacks.
+    #>
     param (
-        [string]$Program,
         [string]$Message,
         [ValidateSet("Application","System","Security","Setup")]
         [string]$LogType = "Application",
         [ValidateSet("Information","Warning","Error")]
         [string]$EntryType = "Information"
     )
-    $validSources = @{
-        "Application" = @("Application Error", "Windows Backup", "VSS", 
-                         "Microsoft-Windows-WindowsUpdateClient", "Microsoft-Windows-PowerShell",
-                         "Service Control Manager", "Winlogon", "Application Hang")
-        "System" = @("Microsoft-Windows-DNS-Client", "Microsoft-Windows-Dhcp-Client",
-                    "Microsoft-Windows-Kernel-General", "Microsoft-Windows-Kernel-Power",
-                    "Disk", "EventLog", "Schannel")
-        "Security" = @("Microsoft-Windows-Security-Auditing")
-        "Setup" = @("Microsoft-Windows-Servicing")
+
+    # Fontes garantidas que existem em todos os sistemas Windows
+    $guaranteedSources = @{
+        "Application" = @("Application Error", "Application Hang", "Windows Backup")
+        "System"      = @("EventLog", "Disk", "Microsoft-Windows-Kernel-General")
+        "Security"    = @("Microsoft-Windows-Security-Auditing")
+        "Setup"       = @("Microsoft-Windows-Servicing")
     }
 
-    # Gerar ID de evento plausível baseado no tipo
-    $eventId = switch ($EntryType) {
-        "Information" { Get-Random -Minimum 100 -Maximum 999 }
-        "Warning"     { Get-Random -Minimum 1000 -Maximum 1999 }
-        "Error"       { Get-Random -Minimum 2000 -Maximum 3999 }
-    }
-    $source = if ((Get-Random -Maximum 100) -lt 70 -and $validSources[$LogType]) {
-        $validSources[$LogType] | Get-Random
-    } else {
-        $suffix = Get-Random -InputObject @('Service','Provider','Manager','Host','Daemon','Client')
-        "$Program $suffix"
-    }
-    $msg = @"
+    # Tentar primeiro com fontes garantidas
+    foreach ($source in $guaranteedSources[$LogType]) {
+        try {
+            $eventId = switch ($EntryType) {
+                "Information" { Get-Random -Minimum 100 -Maximum 999 }
+                "Warning"     { Get-Random -Minimum 1000 -Maximum 1999 }
+                "Error"       { Get-Random -Minimum 2000 -Maximum 3999 }
+            }
+
+            $msg = @"
 $Message
 Process ID: $(Get-Random -Minimum 1000 -Maximum 9999)
 Thread ID: $(Get-Random -Minimum 1000 -Maximum 9999)
@@ -404,67 +405,62 @@ Computer: $env:COMPUTERNAME
 Timestamp: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss.fff")
 "@
 
-    try {
-        if (-not [System.Diagnostics.EventLog]::SourceExists($source)) {
-            New-EventLog -LogName $LogType -Source $source -ErrorAction Stop | Out-Null
+            Write-EventLog -LogName $LogType -Source $source -EntryType $EntryType -EventId $eventId -Message $msg -ErrorAction Stop
+            Write-Verbose "[SUCCESS] Evento criado em $LogType usando fonte existente: $source" -Verbose
+            return $true
         }
-        Write-EventLog -LogName $LogType -Source $source -EntryType $EntryType -EventId $eventId -Message $msg -ErrorAction Stop
-        
-        Write-Verbose "[+] Evento criado em $LogType log - Fonte: $source" -Verbose
+        catch {
+            Write-Verbose "[TRY] Falha com fonte garantida $source: $_" -Verbose
+            continue
+        }
+    }
+
+    # Fallback: Usar fonte Application se todas as tentativas falharem
+    try {
+        Write-Verbose "[FALLBACK] Tentando com fonte Application padrão..." -Verbose
+        Write-EventLog -LogName "Application" -Source "Application Error" -EntryType $EntryType -EventId 500 -Message $msg -ErrorAction Stop
         return $true
     }
     catch {
-        Write-Verbose "[!] Falha ao criar evento ($LogType/$source): $_" -Verbose
+        Write-Verbose "[FINAL FAILURE] Não foi possível criar evento em nenhuma fonte disponível" -Verbose
         return $false
     }
 }
 
+# Mensagens de evento
 $eventMessages = @(
-    "O aplicativo foi iniciado com sucesso",
-    "Atualização concluída com êxito",
-    "Conexão estabelecida com o servidor remoto",
-    "Erro detectado, mas recuperável",
-    "Processo encerrado normalmente",
-    "Plugin carregado com sucesso",
-    "Backup concluído sem erros",
-    "Verificação automática concluída",
-    "Falha ao iniciar o serviço",
-    "Atualização de software necessária",
-    "Erro de conexão com o recurso remoto",
-    "Problema de arquitetura detectado",
-    "Processos do Windows iniciados com avisos",
-    "Falha ao iniciar processo do sistema",
-    "Atualização aplicada com sucesso",
-    "Componente requer atualização",
-    "Verificação de licença concluída",
-    "Autenticação de usuário bem-sucedida",
-    "Sincronização de dados concluída",
-    "Cache limpo com sucesso"
-)
-$entryTypes = @("Information") * 70 + @("Warning") * 20 + @("Error") * 10
-$programs = @(
-    "Windows Defender", "Microsoft Edge", "PowerShell",
-    "System Service", "Network Manager", "Security Client",
-    "Update Manager", "Disk Utility", "Event Monitor",
-    "Configuration Service", "Backup Client", "Runtime Broker"
+    "Operação concluída com sucesso",
+    "Processo finalizado normalmente",
+    "Serviço iniciado com sucesso",
+    "Verificação de segurança completada",
+    "Atualização de configuração aplicada",
+    "Conexão de rede estabelecida",
+    "Recurso liberado com sucesso",
+    "Tarefa agendada executada",
+    "Cache limpo com sucesso",
+    "Verificação de integridade OK"
 )
 
-# Gerar eventos falsos
 $successCount = 0
-foreach ($i in 1..250) { 
-    $program = $programs | Get-Random
+$attempts = 1000  # Número reduzido para teste
+
+1..$attempts | ForEach-Object {
     $logType = Get-Random -InputObject @("Application", "System")
+    $entryType = Get-Random -InputObject @("Information", "Warning", "Error")
     $message = $eventMessages | Get-Random
-    $entryType = $entryTypes | Get-Random
-    
-    if (Write-FakeEvent -Program $program -Message $message -LogType $logType -EntryType $entryType) {
+
+    if (Write-SafeEvent -Message $message -LogType $logType -EntryType $entryType) {
         $successCount++
     }
-    Start-Sleep -Milliseconds (Get-Random -Minimum 50 -Maximum 300)
+    
+    # Intervalo aleatório entre tentativas
+    Start-Sleep -Milliseconds (Get-Random -Minimum 100 -Maximum 800)
 }
-Write-FakeEvent -Program "Windows Defender" -Message "Verificação de segurança concluída" -LogType "Application" -EntryType "Information"
-Write-Host "`nOperação concluída: $successCount eventos criados com sucesso." -ForegroundColor Green
-Write-Host "`nGeração de log de eventos falsos concluída!" -ForegroundColor Cyan
+
+Write-Host "`nResultado Final:" -ForegroundColor Cyan
+Write-Host "• Tentativas: $attempts" -ForegroundColor White
+Write-Host "• Sucessos: $successCount" -ForegroundColor Green
+Write-Host "• Falhas: $($attempts - $successCount)" -ForegroundColor Red
 Clear-Host
 function Set-FileTime {
     param (
