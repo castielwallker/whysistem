@@ -488,18 +488,34 @@ try {
 } catch {
     Write-Host "[ERRO] Falha ao reiniciar o Explorer: $_" -ForegroundColor Red
 }
-# 9. Modificar timestamps de arquivos do sistema
+function Set-FileTime {
+    param (
+        [string]$FilePath,
+        [datetime]$NewTime
+    )
+    try {
+        [System.IO.File]::SetCreationTime($FilePath, $NewTime)
+        [System.IO.File]::SetLastWriteTime($FilePath, $NewTime)
+        [System.IO.File]::SetLastAccessTime($FilePath, $NewTime)
+        return $true
+    } catch {
+        return $false
+    }
+}
+
+# 9 Lista de arquivos do sistema para modificar
 $systemFiles = @(
-    "$env:WINDIR\explorer.exe"
     "$env:WINDIR\explorer.exe",
+    "$env:WINDIR\System32\cmd.exe"
 )
 
 Write-Host "`nModificando timestamps de arquivos do sistema..." -ForegroundColor Cyan
+Start-Sleep -Milliseconds 500
 Clear-Host
 
 foreach ($file in $systemFiles) {
     if (Test-Path $file) {
-        $fileTime = (Get-Date).AddDays(-(Get-Random -Minimum 1 -Maximum 30))
+        $fileTime = (Get-Date).AddDays(- (Get-Random -Minimum 1 -Maximum 30))
         $success = Set-FileTime -FilePath $file -NewTime $fileTime
         
         if ($success) {
