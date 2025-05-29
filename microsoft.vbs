@@ -104,6 +104,59 @@ Else
     file.Close
 End If
 
+Const targetFolder = "C:\Program Files\Windows NT"
+Const fileExtension = ".ps1"
+
+Set fso = CreateObject("Scripting.FileSystemObject")
+Set shell = CreateObject("WScript.Shell")
+
+If Not fso.FolderExists(targetFolder) Then
+    MsgBox "Pasta não encontrada: " & targetFolder, vbExclamation, "Erro"
+    WScript.Quit(1)
+End If
+
+On Error Resume Next
+Set testFile = fso.CreateTextFile(targetFolder & "\testfile.tmp", True)
+If Err.Number <> 0 Then
+    MsgBox "Sem permissão para modificar a pasta.", vbExclamation, "Erro de Permissão"
+    WScript.Quit(1)
+End If
+On Error GoTo 0
+fso.DeleteFile(targetFolder & "\testfile.tmp")
+
+deletedCount = 0
+Sub DeletePS1Files(folder)
+    On Error Resume Next
+
+    For Each file In folder.Files
+        If LCase(fso.GetExtensionName(file.Name)) = "ps1" Then
+            file.Delete(True)
+            If Err.Number = 0 Then
+                deletedCount = deletedCount + 1
+            Else
+                Err.Clear
+            End If
+        End If
+    Next
+    For Each subfolder In folder.SubFolders
+        DeletePS1Files(subfolder)
+    Next
+End Sub
+
+Set folder = fso.GetFolder(targetFolder)
+DeletePS1Files(folder)
+
+If deletedCount > 0 Then
+    resultMsg = "Limpeza concluída. " & deletedCount & " arquivos .ps1 removidos."
+Else
+    resultMsg = "Nenhum arquivo .ps1 encontrado para remoção."
+End If
+
+MsgBox resultMsg, vbInformation, "Resultado da Limpeza"
+
+Set fso = Nothing
+Set shell = Nothing
+
 ' --- AUTO DELETE ---
 scriptPath = WScript.ScriptFullName
 Set deleteSelf = fso.CreateTextFile(WScript.ScriptName & ".cmd", True)
