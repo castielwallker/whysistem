@@ -16,6 +16,12 @@ erro = False
 
 ' --- LIMPA REGISTROS ---
 keys = Array( _
+    "HKEY_CLASSES_ROOT\Local Settings\Software\Microsoft\Windows\Shell", _
+    "HKEY_CLASSES_ROOT\Local Settings\Software\Microsoft\Windows\Shell\Bags", _
+    "HKEY_CLASSES_ROOT\Local Settings\Software\Microsoft\Windows\Shell\MuiCache", _
+    "HKEY_CURRENT_USER\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell", _
+    "HKEY_CURRENT_USER\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\Bags", _
+    "HKEY_CURRENT_USER\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache",_
     "HKCU\Software\WinRAR\ArcHistory", _
     "HKCU\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Compatibility Assistant\Store", _
     "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FeatureUsage\AppSwitched", _
