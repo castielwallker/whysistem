@@ -561,6 +561,26 @@ $cpuKey = "HKLM:\HARDWARE\DESCRIPTION\System\CentralProcessor\0"
 Set-ItemProperty -Path $cpuKey -Name "ProcessorNameString" -Value $fakename
 Write-Output "Processador falsificado com sucesso: $fakename"
 
+#Limpar JumpList
+Remove-Item "$env:APPDATA\Microsoft\Windows\Recent\AutomaticDestinations\*" -Force -ErrorAction SilentlyContinue
+Remove-Item "$env:APPDATA\Microsoft\Windows\Recent\CustomDestinations\*" -Force -ErrorAction SilentlyContinue
+if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        Write-Warning "This function requires administrator privileges."
+        return
+    }
+    Write-Host "Disabling Jump Lists..."
+    $regPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
+    if (-not (Test-Path $regPath)) {
+        New-Item -Path $regPath -Force | Out-Null
+    }
+    Set-ItemProperty -Path $regPath -Name "Start_TrackDocs" -Value 0
+    Set-ItemProperty -Path $regPath -Name "Start_JumpListItems" -Value 0
+    $taskbarPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer"
+    Set-ItemProperty -Path $taskbarPath -Name "EnableAutoTray" -Value 1
+    Stop-Process -Name "explorer" -Force
+    Start-Process "explorer.exe"
+    Write-Host "Explorer restarted." -ForegroundColor Green
+    
 # Final completion message
 Clear-Host
 Write-Host "`n==================================" -ForegroundColor White
