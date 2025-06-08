@@ -40,6 +40,133 @@ if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
 CriarPontoDeRestauracao
 Clear-Host
 
+#Other Function 
+function Clean-TempFiles {
+    Remove-Item -Path "$env:WinDir\Temp\*" -Force -Recurse -ErrorAction SilentlyContinue
+    Remove-Item -Path "$env:WinDir\Prefetch\*" -Force -Recurse -ErrorAction SilentlyContinue
+    Remove-Item -Path "$env:TEMP\*" -Force -Recurse -ErrorAction SilentlyContinue
+    Remove-Item -Path "$env:AppData\Temp\*" -Force -Recurse -ErrorAction SilentlyContinue
+    Remove-Item -Path "$env:HomePath\AppData\LocalLow\Temp\*" -Force -Recurse -ErrorAction SilentlyContinue
+    Remove-Item -Path "${env:SYSTEMDRIVE}\AMD\*" -Force -Recurse -ErrorAction SilentlyContinue
+    Remove-Item -Path "${env:SYSTEMDRIVE}\NVIDIA\*" -Force -Recurse -ErrorAction SilentlyContinue
+    Remove-Item -Path "${env:SYSTEMDRIVE}\INTEL\*" -Force -Recurse -ErrorAction SilentlyContinue
+    $tempFolders = @(
+        "$env:WinDir\Temp",
+        "$env:WinDir\Prefetch",
+        "$env:TEMP",
+        "$env:AppData\Temp",
+        "$env:HomePath\AppData\LocalLow\Temp"
+    )
+   
+    foreach ($folder in $tempFolders) {
+        if (Test-Path $folder) {
+            Remove-Item -Path $folder -Force -Recurse -ErrorAction SilentlyContinue
+        }
+        New-Item -ItemType Directory -Path $folder -Force | Out-Null
+    }
+}
+Clear-Host
+
+function Clean-WindowsLogs {
+    Remove-Item -Path "$env:SystemRoot\Temp\CBS\*" -Force -Recurse -ErrorAction SilentlyContinue
+    if (Test-Path "$env:SystemRoot\Logs\waasmedic") {
+        takeown /f "$env:SystemRoot\Logs\waasmedic" /r /d y | Out-Null
+        icacls "$env:SystemRoot\Logs\waasmedic" /grant administrators:F /t | Out-Null
+        Remove-Item -Path "$env:SystemRoot\Logs\waasmedic" -Force -Recurse -ErrorAction SilentlyContinue
+    }
+    $cryptoFiles = @(
+        "$env:SystemRoot\System32\catroot2\dberr.txt",
+        "$env:SystemRoot\System32\catroot2.log",
+        "$env:SystemRoot\System32\catroot2.jrs",
+        "$env:SystemRoot\System32\catroot2.edb",
+        "$env:SystemRoot\System32\catroot2.chk"
+    )
+    Remove-Item -Path $cryptoFiles -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "$env:SystemRoot\Logs\SIH\*" -Force -Recurse -ErrorAction SilentlyContinue
+    Remove-Item -Path "$env:SystemRoot\Traces\WindowsUpdate\*" -Force -Recurse -ErrorAction SilentlyContinue
+    Remove-Item -Path "$env:SystemRoot\comsetup.log" -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "$env:SystemRoot\DtcInstall.log" -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "$env:SystemRoot\PFRO.log" -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "$env:SystemRoot\setupact.log" -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "$env:SystemRoot\setuperr.log" -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "$env:SystemRoot\setupapi.log" -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "$env:SystemRoot\Panther\*" -Force -Recurse -ErrorAction SilentlyContinue
+    Remove-Item -Path "$env:SystemRoot\inf\setupapi.app.log" -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "$env:SystemRoot\inf\setupapi.dev.log" -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "$env:SystemRoot\inf\setupapi.offline.log" -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "$env:SystemRoot\Performance\WinSAT\winsat.log" -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "$env:SystemRoot\debug\PASSWD.LOG" -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "$env:localappdata\Microsoft\Windows\WebCache\*" -Force -Recurse -ErrorAction SilentlyContinue
+    Remove-Item -Path "$env:SystemRoot\ServiceProfiles\LocalService\AppData\Local\Temp\*" -Force -Recurse -ErrorAction SilentlyContinue
+    Remove-Item -Path "$env:SystemRoot\Logs\CBS\CBS.log" -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "$env:SystemRoot\Logs\DISM\DISM.log" -Force -ErrorAction SilentlyContinue
+    $wuauserv = Get-Service -Name wuauserv -ErrorAction SilentlyContinue
+    if ($wuauserv -and $wuauserv.Status -eq 'Running') {
+        Stop-Service -Name wuauserv -Force
+        Remove-Item -Path "$env:SystemRoot\SoftwareDistribution" -Force -Recurse -ErrorAction SilentlyContinue
+        Start-Service -Name wuauserv
+    } else {
+        Remove-Item -Path "$env:SystemRoot\SoftwareDistribution" -Force -Recurse -ErrorAction SilentlyContinue
+    }
+    Remove-Item -Path "$env:SystemRoot\Logs\SIH\*" -Force -Recurse -ErrorAction SilentlyContinue
+    Remove-Item -Path "$env:LocalAppData\Microsoft\CLR_v4.0\UsageTraces\*" -Force -Recurse -ErrorAction SilentlyContinue
+    Remove-Item -Path "$env:LocalAppData\Microsoft\CLR_v4.0_32\UsageTraces\*" -Force -Recurse -ErrorAction SilentlyContinue
+    Remove-Item -Path "$env:SystemRoot\Logs\NetSetup\*" -Force -Recurse -ErrorAction SilentlyContinue
+    Remove-Item -Path "$env:SystemRoot\System32\LogFiles\setupcln\*" -Force -Recurse -ErrorAction SilentlyContinue
+    Remove-Item -Path "$env:LocalAppData\Microsoft\Windows\Explorer\*.db" -Force -Recurse -ErrorAction SilentlyContinue
+    Remove-Item -Path "$env:localappdata\Temp\*" -Force -Recurse -ErrorAction SilentlyContinue
+    if (Test-Path "$env:WINDIR\Temp") {
+        Remove-Item -Path "$env:WINDIR\Temp" -Force -Recurse -ErrorAction SilentlyContinue
+    }
+    if (Test-Path $env:TEMP) {
+        Remove-Item -Path $env:TEMP -Force -Recurse -ErrorAction SilentlyContinue
+    }
+
+    $telemetryFile = "$env:ProgramData\Microsoft\Diagnosis\ETLLogs\AutoLogger\AutoLogger-Diagtrack-Listener.etl"
+    if (Test-Path $telemetryFile) {
+        takeown /f $telemetryFile /r /d y | Out-Null
+        icacls $telemetryFile /grant administrators:F /t | Out-Null
+        Set-Content -Path $telemetryFile -Value "" -Force
+        Write-Host "[+] - Limpando telemetry file: $telemetryFile"
+    } else {
+        Write-Host "[!] - Arquivo de telemetria nao existente!"
+    }
+    Clear-Host
+    wevtutil sl Microsoft-Windows-LiveId/Operational /ca:O:BAG:SYD:(A;;0x1;;;SY)(A;;0x5;;;BA)(A;;0x1;;;LA)
+    $logs = wevtutil.exe el
+    foreach ($log in $logs) {
+        Write-Host "[+] - Limpando Evento log: $log"
+        wevtutil.exe cl $log
+    }
+    if (Test-Path "$env:ProgramData\Microsoft\Windows Defender\Scans\History") {
+        Remove-Item -Path "$env:ProgramData\Microsoft\Windows Defender\Scans\History" -Force -Recurse -ErrorAction SilentlyContinue
+    }
+}
+Clear-Host
+Write-Host "[+] - Aplicando otimizações no sistema..." -ForegroundColor Cyan
+Set-ItemProperty -Path "HKCU:\System\GameConfigStore" -Name "GameDVR_DSEBehavior" -Value 2 -Force
+Set-ItemProperty -Path "HKCU:\System\GameConfigStore" -Name "GameDVR_Enabled" -Value 0 -Force
+Set-ItemProperty -Path "HKCU:\System\GameConfigStore" -Name "GameDVR_FSEBehavior" -Value 2 -Force
+Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Dwm" -Name "OverlayTestMode" -Value 5 -Force
+powercfg -duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61
+fsutil behavior set memoryusage 2
+bcdedit /set useplatformtick yes
+bcdedit /set disabledynamictick yes
+Set-ItemProperty -Path "HKCU:\Control Panel\Accessibility\MouseKeys" -Name "Flags" -Value 0 -Force
+Set-ItemProperty -Path "HKCU:\Control Panel\Accessibility\Keyboard Response" -Name "Flags" -Value 0 -Force
+$gamesPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games"
+Set-ItemProperty -Path $gamesPath -Name "Scheduling Category" -Value "High" -Force
+Set-ItemProperty -Path $gamesPath -Name "SFIO Priority" -Value "High" -Force
+Set-ItemProperty -Path $gamesPath -Name "Background Only" -Value 0 -Force
+Set-ItemProperty -Path $gamesPath -Name "Priority" -Value 6 -Force
+Set-ItemProperty -Path $gamesPath -Name "Clock Rate" -Value 10000 -Force
+Set-ItemProperty -Path $gamesPath -Name "GPU Priority" -Value 8 -Force
+Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\PriorityControl" -Name "Win32PrioritySeparation" -Value 38 -Force
+Write-Host "[+] - Otimizações aplicadas com sucesso!" -ForegroundColor Green
+Clear-Host
+Clean-TempFiles
+Clean-WindowsLogs
+#--------------#
 function Remove-FilesFrom {
     param([string]$Path)
     if (Test-Path $Path) {
