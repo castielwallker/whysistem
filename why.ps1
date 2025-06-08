@@ -41,6 +41,197 @@ CriarPontoDeRestauracao
 Clear-Host
 
 #Other Function 
+Clear-Host
+function Set-GamePriority {
+    param (
+        [string]$GameExe
+    )
+    
+    $regPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\$GameExe"
+    $perfPath = "$regPath\PerfOptions"
+    
+    if (-not (Test-Path $regPath)) {
+        New-Item -Path $regPath -Force | Out-Null
+    }
+    
+    if (-not (Test-Path $perfPath)) {
+        New-Item -Path $perfPath -Force | Out-Null
+    }
+    
+    New-ItemProperty -Path $perfPath -Name "CpuPriorityClass" -Value 3 -PropertyType DWORD -Force | Out-Null
+    Write-Host "[+] - Prioridade configurada para $GameExe"
+}
+
+Write-Host "[+] - Configurando prioridades de CPU para jogos..."
+$games = @(
+    "FortniteClient-Win64-Shipping.exe",
+    "GTA5.exe",
+    "FiveM_b2372_GTAProcess.exe",
+    "cs2.exe",
+    "javaw.exe",
+    "VALORANT-Win64-Shipping.exe",
+    "LeagueClient.exe",
+    "cod.exe",
+    "r5apex.exe",
+    "RobloxPlayerBeta.exe",
+    "GoW.exe",
+    "GoWRagnarok.exe",
+    "Multi Theft Auto.exe",
+    "gta_sa.exe",
+    "eurotrucks.exe",
+    "ets2.exe",
+    "RainbowSix.exe",
+    "CultOfTheLamb.exe",
+    "ULTRAKILL.exe",
+    "BloodStrike.exe",
+    "ArenaBreakout.exe",
+    "re4.exe",
+    "re2.exe",
+    "re8.exe",
+    "HD-Player.exe",
+    "BF2042.exe",
+    "bf4.exe",
+    "tlou-i.exe",
+    "tlou-ii.exe",
+    "tslgame.exe",
+    "RocketLeague.exe",
+    "Cyberpunk2077.exe",
+    "Terraria.exe",
+    "RDR2.exe"
+)
+Clear-Host
+foreach ($game in $games) {
+    Set-GamePriority -GameExe $game
+}
+Write-Host "[+] - Desativando telemetria e serviços desnecessários..."
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\DataCollection" /v "AllowTelemetry" /t REG_DWORD /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\System" /v "AllowAppDataCollection" /t REG_DWORD /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\AdvertisingInfo" /v "DisableWindowsAdvertising" /t REG_DWORD /d 1 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\CloudContent" /v "DisableMicrosoftConsumerExperience" /t REG_DWORD /d 1 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" /v "DoNotConnectToWindowsUpdateInternetLocations" /t REG_DWORD /d 1 /f
+$tasks = @(
+    "Microsoft\Windows\Customer Experience Improvement Program\Consolidator",
+    "Microsoft\Windows\Customer Experience Improvement Program\UsbCeip",
+    "Microsoft\Windows\Customer Experience Improvement Program\KernelCeipTask",
+    "Microsoft\Windows\Application Experience\ProgramDataUpdater",
+    "\Microsoft\Windows\Defrag\ScheduledDefrag"
+)
+foreach ($task in $tasks) {
+    schtasks /Change /TN "$task" /Disable | Out-Null
+}
+$services = @(
+    "DiagTrack",
+    "dmwappushservice",
+    "Xbox Game Monitoring",
+    "GamingServices",
+    "GamingServicesNet",
+    "wuauserv",
+    "dosvc",
+    "WerSvc",
+    "w32time",
+    "Spooler",
+    "wisvc",
+    "WbioSrvc",
+    "WSearch",
+    "SysMain"
+)
+foreach ($service in $services) {
+    sc stop $service | Out-Null
+    sc config $service start= disabled | Out-Null
+}
+Clear-Host
+Write-Host "[+] - Aplicando configurações de privacidade e desempenho..."
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v SubscribedContent-338387Enabled /t REG_DWORD /d 0 /f
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v SubscribedContent-353694Enabled /t REG_DWORD /d 0 /f
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v SubscribedContent-353696Enabled /t REG_DWORD /d 0 /f
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v SubscribedContent-338388Enabled /t REG_DWORD /d 0 /f
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v Start_Recommendations /t REG_DWORD /d 0 /f
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" /v VisualFXSetting /t REG_DWORD /d 2 /f
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" /v EnableTransparency /t REG_DWORD /d 0 /f
+reg add "HKCU\Control Panel\Desktop" /v UserPreferencesMask /t REG_BINARY /d 9012038010000000 /f
+reg add "HKCU\Control Panel\Desktop" /v VisualFXSetting /t REG_DWORD /d 2 /f
+reg add "HKCU\Software\Microsoft\GameBar" /v "AllowAutoGameMode" /t REG_DWORD /d 0 /f
+reg add "HKCU\Software\Microsoft\GameBar" /v "AutoGameModeEnabled" /t REG_DWORD /d 0 /f
+reg add "HKCU\Software\Microsoft\GameBar" /v "ShowStartupPanel" /t REG_DWORD /d 0 /f
+reg add "HKCU\Software\Microsoft\Siuf\Rules" /v NumberOfSIUFInPeriod /t REG_DWORD /d 0 /f
+reg add "HKCU\Software\Microsoft\Siuf\Rules" /v PeriodInDays /t REG_DWORD /d 0 /f
+reg add "HKCU\Control Panel\Mouse" /v MouseSpeed /t REG_SZ /d 0 /f
+reg add "HKCU\Control Panel\Mouse" /v MouseThreshold1 /t REG_SZ /d 0 /f
+reg add "HKCU\Control Panel\Mouse" /v MouseThreshold2 /t REG_SZ /d 0 /f
+reg add "HKCU\Control Panel\Desktop" /v MouseTrails /t REG_SZ /d 0 /f
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer" /v AltTabSettings /t REG_DWORD /D 1 /f
+reg add "HKCU\Control Panel\Keyboard" /v KeyboardDelay /t REG_SZ /d 0 /f
+reg add "HKCU\Control Panel\Keyboard" /v KeyboardSpeed /t REG_SZ /d 31 /f
+reg add "HKCU\Control Panel\Desktop" /v MenuShowDelay /t REG_SZ /d 0 /f
+reg add "HKCU\Control Panel\Desktop" /v ForegroundLockTimeout /t REG_DWORD /d 0 /f
+fsutil behavior set disableLastAccess 0
+fsutil behavior set disable8dot3 1
+powercfg -duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61
+powercfg.exe /setacvalueindex SCHEME_CURRENT SUB_PROCESSOR IdleDisable 0
+powercfg.exe /setactive SCHEME_CURRENT
+powercfg -h off
+netsh interface tcp set global autotuninglevel=normal
+netsh interface tcp set global rss=enabled
+netsh interface tcp set global chimney=disabled
+netsh int tcp set heuristics disabled
+REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\GameDVR" /v "AllowGameDVR" /t REG_DWORD /d 0 /f
+REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\GameBar" /v "AllowAutoGameMode" /t REG_DWORD /d 0 /f
+Write-Host "[+] - Removendo aplicativos desnecessários..."
+$appsToRemove = @(
+    "*xboxapp*",
+    "*xboxgamemode*",
+    "*Microsoft.XboxGameOverlay*",
+    "*Microsoft.GamingServices*",
+    "*Microsoft.Windows.Cortana*",
+    "*officehub*",
+    "*phone*",
+    "*messaging*",
+    "*maps*",
+    "*groove*",
+    "*getstarted*",
+    "*calendar*",
+    "*alarms*",
+    "*3dbuilder*",
+    "*news*",
+    "*onedrive*",
+    "Microsoft.549981C3F5F10"
+)
+Clear-Host
+
+foreach ($app in $appsToRemove) {
+    Get-AppxPackage $app | Remove-AppxPackage -ErrorAction SilentlyContinue
+    Get-AppxPackage -AllUsers $app | Remove-AppxPackage -ErrorAction SilentlyContinue
+}
+reg add "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v ShowCopilotButton /t REG_DWORD /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Windows Copilot" /v TurnOffWindowsCopilot /t REG_DWORD /d 1 /f
+reg delete "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v HideCopilotButton /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v "AllowCortana" /t REG_DWORD /d 0 /f
+reg add "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "SystemPaneSuggestionsEnabled" /t REG_DWORD /d 0 /f
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\PushNotifications" /v ToastEnabled /t REG_DWORD /d 0 /f
+Write-Host "[+] - Limpando arquivos temporários..."
+$pathsToClean = @(
+    "$env:windir\temp\*",
+    "$env:windir\Prefetch\*.exe",
+    "$env:windir\Prefetch\*.dll",
+    "$env:windir\Prefetch\*.pf",
+    "$env:windir\system32\dllcache\*",
+    "$env:systemdrive\Temp\*",
+    "$env:temp\*",
+    "$env:userprofile\Local Settings\History\*",
+    "$env:userprofile\Local Settings\Temporary Internet Files\*",
+    "$env:userprofile\Local Settings\Temp\*",
+    "$env:userprofile\Recent\*",
+    "$env:userprofile\Cookies\*"
+)
+foreach ($path in $pathsToClean) {
+    Remove-Item -Path $path -Force -Recurse -ErrorAction SilentlyContinue
+}
+dism /Online /Disable-Feature:Microsoft-Hyper-V-All /NoRestart
+bcdedit /set hypervisorlaunchtype off
+del /f /s /q "$env:LocalAppData\Microsoft\Windows\Explorer\iconcache*"
+del /f /s /q "$env:LocalAppData\Microsoft\Windows\Explorer\thumbcache*"
+Write-Host "[+] - Otimizações concluídas com sucesso!"
+Clear-Host
 function Clean-TempFiles {
     Remove-Item -Path "$env:WinDir\Temp\*" -Force -Recurse -ErrorAction SilentlyContinue
     Remove-Item -Path "$env:WinDir\Prefetch\*" -Force -Recurse -ErrorAction SilentlyContinue
