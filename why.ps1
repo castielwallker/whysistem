@@ -5,13 +5,12 @@ $Host.UI.RawUI.ForegroundColor = "White"
 Clear-Host
 
 function Pause-Script {
-    Write-Host "`nFinalizado. Pressione para sair..." -ForegroundColor White
+    Write-Host "`n[+] - Finalizado. Pressione para sair..." -ForegroundColor White
     $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 }
-
 # Criar Ponto 
 function CriarPontoDeRestauracao {
-    Write-Host "Criando ponto de restauração do sistema..." -ForegroundColor Cyan
+    Write-Host "[+] Criando ponto de restauração do sistema..." -ForegroundColor White
     $srStatus = Get-Service -Name 'vss' -ErrorAction SilentlyContinue
     if ($srStatus.Status -ne 'Running') {
         Start-Service -Name 'vss' -ErrorAction SilentlyContinue
@@ -33,7 +32,7 @@ Checkpoint-Computer -Description "Ponto criado por script" -RestorePointType "MO
 
 if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(`
     [Security.Principal.WindowsBuiltInRole] "Administrator")) {
-    Write-Warning "Este script precisa ser executado como Administrador. Reabrindo com permissões elevadas..."
+    Write-Warning "[!] - Esse Script precisa ser executado como Administrador. Reabrindo com permissões elevadas..."
     Start-Process powershell -Verb RunAs -ArgumentList "-ExecutionPolicy Bypass -File `"$PSCommandPath`""
     exit
 }
@@ -45,24 +44,19 @@ Clear-Host
 function Set-GamePriority {
     param (
         [string]$GameExe
-    )
-    
+    ) 
     $regPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\$GameExe"
     $perfPath = "$regPath\PerfOptions"
-    
     if (-not (Test-Path $regPath)) {
         New-Item -Path $regPath -Force | Out-Null
     }
-    
     if (-not (Test-Path $perfPath)) {
         New-Item -Path $perfPath -Force | Out-Null
     }
-    
     New-ItemProperty -Path $perfPath -Name "CpuPriorityClass" -Value 3 -PropertyType DWORD -Force | Out-Null
-    Write-Host "[+] - Prioridade configurada para $GameExe"
+    Write-Host "[+] - Prioridade configurada para $GameExe" -ForegroundColor Green
 }
-
-Write-Host "[+] - Configurando prioridades de CPU para jogos..."
+Write-Host "[+] - Configurando prioridades de CPU para jogos..." -ForegroundColor Green
 $games = @(
     "FortniteClient-Win64-Shipping.exe",
     "GTA5.exe",
@@ -140,7 +134,7 @@ foreach ($service in $services) {
     sc config $service start= disabled | Out-Null
 }
 Clear-Host
-Write-Host "[+] - Aplicando configurações de privacidade e desempenho..."
+Write-Host "[+] - Aplicando configurações de privacidade e desempenho..." -ForegroundColor Green
 reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v SubscribedContent-338387Enabled /t REG_DWORD /d 0 /f
 reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v SubscribedContent-353694Enabled /t REG_DWORD /d 0 /f
 reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v SubscribedContent-353696Enabled /t REG_DWORD /d 0 /f
@@ -176,7 +170,8 @@ netsh interface tcp set global chimney=disabled
 netsh int tcp set heuristics disabled
 REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\GameDVR" /v "AllowGameDVR" /t REG_DWORD /d 0 /f
 REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\GameBar" /v "AllowAutoGameMode" /t REG_DWORD /d 0 /f
-Write-Host "[+] - Removendo aplicativos desnecessários..."
+Write-Host "[+] - Removendo aplicativos desnecessários..." -ForegroundColor Green
+Clear-Host
 $appsToRemove = @(
     "*xboxapp*",
     "*xboxgamemode*",
@@ -196,168 +191,84 @@ $appsToRemove = @(
     "*onedrive*",
     "Microsoft.549981C3F5F10"
 )
-Clear-Host
 
+Write-Host "[-] - Removendo aplicativos desnecessários..." -ForegroundColor Green
 foreach ($app in $appsToRemove) {
-    Get-AppxPackage $app | Remove-AppxPackage -ErrorAction SilentlyContinue
-    Get-AppxPackage -AllUsers $app | Remove-AppxPackage -ErrorAction SilentlyContinue
-}
-reg add "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v ShowCopilotButton /t REG_DWORD /d 0 /f
-reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Windows Copilot" /v TurnOffWindowsCopilot /t REG_DWORD /d 1 /f
-reg delete "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v HideCopilotButton /f
-reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v "AllowCortana" /t REG_DWORD /d 0 /f
-reg add "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "SystemPaneSuggestionsEnabled" /t REG_DWORD /d 0 /f
-reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\PushNotifications" /v ToastEnabled /t REG_DWORD /d 0 /f
-Write-Host "[+] - Limpando arquivos temporários..."
-$pathsToClean = @(
-    "$env:windir\temp\*",
-    "$env:windir\Prefetch\*.exe",
-    "$env:windir\Prefetch\*.dll",
-    "$env:windir\Prefetch\*.pf",
-    "$env:windir\system32\dllcache\*",
-    "$env:systemdrive\Temp\*",
-    "$env:temp\*",
-    "$env:userprofile\Local Settings\History\*",
-    "$env:userprofile\Local Settings\Temporary Internet Files\*",
-    "$env:userprofile\Local Settings\Temp\*",
-    "$env:userprofile\Recent\*",
-    "$env:userprofile\Cookies\*"
-)
-foreach ($path in $pathsToClean) {
-    Remove-Item -Path $path -Force -Recurse -ErrorAction SilentlyContinue
-}
-dism /Online /Disable-Feature:Microsoft-Hyper-V-All /NoRestart
-bcdedit /set hypervisorlaunchtype off
-del /f /s /q "$env:LocalAppData\Microsoft\Windows\Explorer\iconcache*"
-del /f /s /q "$env:LocalAppData\Microsoft\Windows\Explorer\thumbcache*"
-Write-Host "[+] - Otimizações concluídas com sucesso!"
-Clear-Host
-function Clean-TempFiles {
-    Remove-Item -Path "$env:WinDir\Temp\*" -Force -Recurse -ErrorAction SilentlyContinue
-    Remove-Item -Path "$env:WinDir\Prefetch\*" -Force -Recurse -ErrorAction SilentlyContinue
-    Remove-Item -Path "$env:TEMP\*" -Force -Recurse -ErrorAction SilentlyContinue
-    Remove-Item -Path "$env:AppData\Temp\*" -Force -Recurse -ErrorAction SilentlyContinue
-    Remove-Item -Path "$env:HomePath\AppData\LocalLow\Temp\*" -Force -Recurse -ErrorAction SilentlyContinue
-    Remove-Item -Path "${env:SYSTEMDRIVE}\AMD\*" -Force -Recurse -ErrorAction SilentlyContinue
-    Remove-Item -Path "${env:SYSTEMDRIVE}\NVIDIA\*" -Force -Recurse -ErrorAction SilentlyContinue
-    Remove-Item -Path "${env:SYSTEMDRIVE}\INTEL\*" -Force -Recurse -ErrorAction SilentlyContinue
-    $tempFolders = @(
-        "$env:WinDir\Temp",
-        "$env:WinDir\Prefetch",
-        "$env:TEMP",
-        "$env:AppData\Temp",
-        "$env:HomePath\AppData\LocalLow\Temp"
-    )
-   
-    foreach ($folder in $tempFolders) {
-        if (Test-Path $folder) {
-            Remove-Item -Path $folder -Force -Recurse -ErrorAction SilentlyContinue
+    try {
+        $packages = Get-AppxPackage -Name $app -ErrorAction SilentlyContinue
+        if ($packages) {
+            $packages | Remove-AppxPackage -ErrorAction SilentlyContinue
         }
-        New-Item -ItemType Directory -Path $folder -Force | Out-Null
+        $allUsersPackages = Get-AppxPackage -Name $app -AllUsers -ErrorAction SilentlyContinue
+        if ($allUsersPackages) {
+            $allUsersPackages | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue
+        }
+        $provisioned = Get-AppxProvisionedPackage -Online | Where-Object { $_.PackageName -like $app }
+        if ($provisioned) {
+            $provisioned | Remove-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue
+        }
+    }
+    catch {
+        Write-Host "[!] - Erro ao remover $app : $_" -ForegroundColor Red
     }
 }
-Clear-Host
 
-function Clean-WindowsLogs {
-    Remove-Item -Path "$env:SystemRoot\Temp\CBS\*" -Force -Recurse -ErrorAction SilentlyContinue
-    if (Test-Path "$env:SystemRoot\Logs\waasmedic") {
-        takeown /f "$env:SystemRoot\Logs\waasmedic" /r /d y | Out-Null
-        icacls "$env:SystemRoot\Logs\waasmedic" /grant administrators:F /t | Out-Null
-        Remove-Item -Path "$env:SystemRoot\Logs\waasmedic" -Force -Recurse -ErrorAction SilentlyContinue
+if ([System.Environment]::OSVersion.Version.Build -ge 22000) {
+    try {
+        Write-Host "Configurando Windows Copilot..."
+        reg add "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v ShowCopilotButton /t REG_DWORD /d 0 /f
+        reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Windows Copilot" /v TurnOffWindowsCopilot /t REG_DWORD /d 1 /f
+        reg delete "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v HideCopilotButton /f 2>$null
     }
-    $cryptoFiles = @(
-        "$env:SystemRoot\System32\catroot2\dberr.txt",
-        "$env:SystemRoot\System32\catroot2.log",
-        "$env:SystemRoot\System32\catroot2.jrs",
-        "$env:SystemRoot\System32\catroot2.edb",
-        "$env:SystemRoot\System32\catroot2.chk"
+    catch {
+        Write-Host "[!] - Erro ao configurar Copilot: $_" -ForegroundColor Reed
+    }
+}
+
+try {
+    reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v "AllowCortana" /t REG_DWORD /d 0 /f
+    reg add "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "SystemPaneSuggestionsEnabled" /t REG_DWORD /d 0 /f
+    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\PushNotifications" /v ToastEnabled /t REG_DWORD /d 0 /f
+}
+catch {
+    Write-Host "[!] - Erro ao configurar privacidade: $_" -ForegroundColor Red
+}
+function Clean-TempFiles {
+    $pathsToClean = @(
+        "$env:windir\temp\*",
+        "$env:windir\Prefetch\*",
+        "$env:windir\system32\dllcache\*",
+        "$env:systemdrive\Temp\*",
+        "$env:temp\*",
+        "$env:userprofile\AppData\Local\Temp\*",
+        "$env:userprofile\AppData\Local\Microsoft\Windows\INetCache\*",
+        "$env:userprofile\AppData\Local\Microsoft\Windows\INetCookies\*",
+        "$env:userprofile\AppData\Local\Microsoft\Windows\History\*"
     )
-    Remove-Item -Path $cryptoFiles -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path "$env:SystemRoot\Logs\SIH\*" -Force -Recurse -ErrorAction SilentlyContinue
-    Remove-Item -Path "$env:SystemRoot\Traces\WindowsUpdate\*" -Force -Recurse -ErrorAction SilentlyContinue
-    Remove-Item -Path "$env:SystemRoot\comsetup.log" -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path "$env:SystemRoot\DtcInstall.log" -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path "$env:SystemRoot\PFRO.log" -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path "$env:SystemRoot\setupact.log" -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path "$env:SystemRoot\setuperr.log" -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path "$env:SystemRoot\setupapi.log" -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path "$env:SystemRoot\Panther\*" -Force -Recurse -ErrorAction SilentlyContinue
-    Remove-Item -Path "$env:SystemRoot\inf\setupapi.app.log" -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path "$env:SystemRoot\inf\setupapi.dev.log" -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path "$env:SystemRoot\inf\setupapi.offline.log" -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path "$env:SystemRoot\Performance\WinSAT\winsat.log" -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path "$env:SystemRoot\debug\PASSWD.LOG" -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path "$env:localappdata\Microsoft\Windows\WebCache\*" -Force -Recurse -ErrorAction SilentlyContinue
-    Remove-Item -Path "$env:SystemRoot\ServiceProfiles\LocalService\AppData\Local\Temp\*" -Force -Recurse -ErrorAction SilentlyContinue
-    Remove-Item -Path "$env:SystemRoot\Logs\CBS\CBS.log" -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path "$env:SystemRoot\Logs\DISM\DISM.log" -Force -ErrorAction SilentlyContinue
-    $wuauserv = Get-Service -Name wuauserv -ErrorAction SilentlyContinue
-    if ($wuauserv -and $wuauserv.Status -eq 'Running') {
-        Stop-Service -Name wuauserv -Force
-        Remove-Item -Path "$env:SystemRoot\SoftwareDistribution" -Force -Recurse -ErrorAction SilentlyContinue
-        Start-Service -Name wuauserv
-    } else {
-        Remove-Item -Path "$env:SystemRoot\SoftwareDistribution" -Force -Recurse -ErrorAction SilentlyContinue
-    }
-    Remove-Item -Path "$env:SystemRoot\Logs\SIH\*" -Force -Recurse -ErrorAction SilentlyContinue
-    Remove-Item -Path "$env:LocalAppData\Microsoft\CLR_v4.0\UsageTraces\*" -Force -Recurse -ErrorAction SilentlyContinue
-    Remove-Item -Path "$env:LocalAppData\Microsoft\CLR_v4.0_32\UsageTraces\*" -Force -Recurse -ErrorAction SilentlyContinue
-    Remove-Item -Path "$env:SystemRoot\Logs\NetSetup\*" -Force -Recurse -ErrorAction SilentlyContinue
-    Remove-Item -Path "$env:SystemRoot\System32\LogFiles\setupcln\*" -Force -Recurse -ErrorAction SilentlyContinue
-    Remove-Item -Path "$env:LocalAppData\Microsoft\Windows\Explorer\*.db" -Force -Recurse -ErrorAction SilentlyContinue
-    Remove-Item -Path "$env:localappdata\Temp\*" -Force -Recurse -ErrorAction SilentlyContinue
-    if (Test-Path "$env:WINDIR\Temp") {
-        Remove-Item -Path "$env:WINDIR\Temp" -Force -Recurse -ErrorAction SilentlyContinue
-    }
-    if (Test-Path $env:TEMP) {
-        Remove-Item -Path $env:TEMP -Force -Recurse -ErrorAction SilentlyContinue
-    }
 
-    $telemetryFile = "$env:ProgramData\Microsoft\Diagnosis\ETLLogs\AutoLogger\AutoLogger-Diagtrack-Listener.etl"
-    if (Test-Path $telemetryFile) {
-        takeown /f $telemetryFile /r /d y | Out-Null
-        icacls $telemetryFile /grant administrators:F /t | Out-Null
-        Set-Content -Path $telemetryFile -Value "" -Force
-        Write-Host "[+] - Limpando telemetry file: $telemetryFile"
-    } else {
-        Write-Host "[!] - Arquivo de telemetria nao existente!"
+    Write-Host "[+] - Limpando arquivos temporários..." -ForegroundColor Green
+    foreach ($path in $pathsToClean) {
+        try {
+            if (Test-Path $path) {
+                Remove-Item -Path $path -Force -Recurse -ErrorAction SilentlyContinue
+                Write-Host "Limpo: $path" -ForegroundColor Green
+            }
+        }
+        catch {
+            Write-Host "[!] - Falha ao limpar $path : $_" -ForegroundColor Red
+        }
     }
-    Clear-Host
-    wevtutil sl Microsoft-Windows-LiveId/Operational /ca:O:BAG:SYD:(A;;0x1;;;SY)(A;;0x5;;;BA)(A;;0x1;;;LA)
-    $logs = wevtutil.exe el
-    foreach ($log in $logs) {
-        Write-Host "[+] - Limpando Evento log: $log"
-        wevtutil.exe cl $log
+    try {
+        del /f /s /q "$env:LocalAppData\Microsoft\Windows\Explorer\iconcache*" 2>$null
+        del /f /s /q "$env:LocalAppData\Microsoft\Windows\Explorer\thumbcache*" 2>$null
     }
-    if (Test-Path "$env:ProgramData\Microsoft\Windows Defender\Scans\History") {
-        Remove-Item -Path "$env:ProgramData\Microsoft\Windows Defender\Scans\History" -Force -Recurse -ErrorAction SilentlyContinue
+    catch {
+        Write-Host "[!] - Falha ao limpar cache de ícones: $_" -ForegroundColor Red
     }
 }
-Clear-Host
-Write-Host "[+] - Aplicando otimizações no sistema..." -ForegroundColor Cyan
-Set-ItemProperty -Path "HKCU:\System\GameConfigStore" -Name "GameDVR_DSEBehavior" -Value 2 -Force
-Set-ItemProperty -Path "HKCU:\System\GameConfigStore" -Name "GameDVR_Enabled" -Value 0 -Force
-Set-ItemProperty -Path "HKCU:\System\GameConfigStore" -Name "GameDVR_FSEBehavior" -Value 2 -Force
-Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Dwm" -Name "OverlayTestMode" -Value 5 -Force
-powercfg -duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61
-fsutil behavior set memoryusage 2
-bcdedit /set useplatformtick yes
-bcdedit /set disabledynamictick yes
-Set-ItemProperty -Path "HKCU:\Control Panel\Accessibility\MouseKeys" -Name "Flags" -Value 0 -Force
-Set-ItemProperty -Path "HKCU:\Control Panel\Accessibility\Keyboard Response" -Name "Flags" -Value 0 -Force
-$gamesPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games"
-Set-ItemProperty -Path $gamesPath -Name "Scheduling Category" -Value "High" -Force
-Set-ItemProperty -Path $gamesPath -Name "SFIO Priority" -Value "High" -Force
-Set-ItemProperty -Path $gamesPath -Name "Background Only" -Value 0 -Force
-Set-ItemProperty -Path $gamesPath -Name "Priority" -Value 6 -Force
-Set-ItemProperty -Path $gamesPath -Name "Clock Rate" -Value 10000 -Force
-Set-ItemProperty -Path $gamesPath -Name "GPU Priority" -Value 8 -Force
-Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\PriorityControl" -Name "Win32PrioritySeparation" -Value 38 -Force
-Write-Host "[+] - Otimizações aplicadas com sucesso!" -ForegroundColor Green
-Clear-Host
 Clean-TempFiles
-Clean-WindowsLogs
-#--------------#
+Clear-Host
+
 function Remove-FilesFrom {
     param([string]$Path)
     if (Test-Path $Path) {
@@ -645,7 +556,7 @@ foreach ($temp in $tempPaths) {
     }
 }
 
-Write-Host "`n[+] - Geração de arquivos temporários falsos concluída!" -ForegroundColor Cyan
+Write-Host "`n[+] - Geração de arquivos temporários falsos concluída!" -ForegroundColor Green
 Clear-Host
 Write-Host "`n[FASE 3] Criando artefatos falsos..." -ForegroundColor Green
 
@@ -849,7 +760,7 @@ $systemFiles = @(
     "$env:WINDIR\System32\cmd.exe"
 )
 
-Write-Host "`nModificando timestamps de arquivos do sistema..." -ForegroundColor Cyan
+Write-Host "`n[+] - Modificando timestamps de arquivos do sistema..." -ForegroundColor Green
 Start-Sleep -Milliseconds 500
 Clear-Host
 
@@ -871,7 +782,7 @@ foreach ($file in $systemFiles) {
 # 10. Limpar sessões ETW
 try {
     Clear-Host
-    Write-Host "`nLimpando sessões ETW..." -ForegroundColor Cyan
+    Write-Host "`n[+] - Limpando sessões ETW..." -ForegroundColor Green
     logman stop -ets | Out-Null
     logman delete -ets | Out-Null
     Write-Host "[+] - Sessões ETW paradas e removidas com sucesso" -ForegroundColor Green
@@ -1319,19 +1230,19 @@ foreach ($cmd in $bcdCmds) {
 
 $cdpService = Get-Service | Where-Object { $_.Name -like "CDPUserSvc_*" }
 $servicesToCheck = @("WinDefend", "dps", "diagtrack", "pcasvc") + $cdpService.Name
-Write-Host "`nStatus atual dos serviços:" -ForegroundColor Cyan
+Write-Host "`n[+] - Status atual dos serviços:" -ForegroundColor White
 foreach ($svcName in $servicesToCheck) {
     try {
         $svc = Get-Service -Name $svcName -ErrorAction Stop
         $status = switch ($svc.Status) {
-            'Running' { "Rodando" }
-            'Stopped' { "Parado" }
+            'Running' { "- Rodando" }
+            'Stopped' { "- Parado" }
             default   { $svc.Status }
         }
-        $color = if ($svc.Status -eq 'Running') { 'Yellow' } else { 'Green' }
+        $color = if ($svc.Status -eq 'Running') { 'Red' } else { 'Green' }
         Write-Host "$svcName = $status" -ForegroundColor $color
     } catch {
-        Write-Host "$svcName = Não encontrado" -ForegroundColor Red
+        Write-Host "[!] - $svcName Não encontrado" -ForegroundColor Red
     }
 }
 
