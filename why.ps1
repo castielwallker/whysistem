@@ -1,5 +1,7 @@
 #requires -RunAsAdministrator
-$Host.UI.RawUI.WindowTitle = "W h y"
+$Host.UI.RawUI.WindowTitle = "Why - ? ? ? ?"
+$Host.UI.RawUI.WindowTitle = "Why - Maad"
+$Host.UI.RawUI.WindowTitle = "Why - ? ? ? ?"
 $Host.UI.RawUI.BackgroundColor = "Black"
 $Host.UI.RawUI.ForegroundColor = "White"
 Clear-Host
@@ -72,11 +74,26 @@ $payload = @{
 } | ConvertTo-Json -Depth 4
 Invoke-RestMethod -Uri $webhookUrl -Method Post -Body $payload -ContentType 'application/json'
 
-# Key Open Loader
-$arquivo = "C:\ProgramData\AMD\Key.Auth"
-$diretorio = Split-Path $arquivo
-New-Item -Path $diretorio -ItemType Directory -Force | Out-Null
-"VALIDADO" | Out-File -Encoding UTF8 -FilePath $arquivo -Force
+# Key Loader + Registro
+$authFilePath = "C:\ProgramData\AMD\Key.Auth"
+$authRegPath = "HKCU:\Software\KeyAuth"
+$authDir = Split-Path $authFilePath
+New-Item -Path $authDir -ItemType Directory -Force | Out-Null
+"VALIDADO" | Out-File -Encoding UTF8 -FilePath $authFilePath -Force
+
+if (-not (Test-Path $authRegPath)) {
+    New-Item -Path $authRegPath -Force | Out-Null
+}
+if (Test-Path $authFilePath) {
+    $usageValue = Get-ItemProperty -Path $authRegPath -Name "AuthUsage" -ErrorAction SilentlyContinue
+    $currentUsage = if ($usageValue -ne $null) { $usageValue.AuthUsage } else { 0 }
+    $newUsage = $currentUsage + 1
+
+    Set-ItemProperty -Path $authRegPath -Name "AuthUsage" -Value $newUsage -Force
+    Set-ItemProperty -Path $authRegPath -Name "AuthBypass" -Value 1 -Force
+} else {
+    Set-ItemProperty -Path $authRegPath -Name "AuthBypass" -Value 0 -Force
+}
 
 # Criar Ponto 
 function CriarPontoDeRestauracao {
@@ -1362,6 +1379,12 @@ Get-ChildItem -Path . -Recurse -Include *.log | Remove-Item -Force -ErrorAction 
 Stop-Process -Name explorer -Force
 Start-Process explorer.exe
 
+#Opção Desativar Loader
+$authRegPath = "HKCU:\Software\KeyAuth"
+if (Test-Path $authRegPath) {
+    Set-ItemProperty -Path $authRegPath -Name "AuthBypass" -Value 0 -Force
+} else {
+}
 # Final completion message
 Clear-Host
 Write-Host "`n==================================" -ForegroundColor White
