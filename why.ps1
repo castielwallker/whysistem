@@ -134,7 +134,7 @@ if (Test-Path $authFilePath) {
 
 # Criar Ponto 
 function CriarPontoDeRestauracao {
-    Write-Host "[+] Criando ponto de restauração do sistema..." -ForegroundColor White
+    Write-Host "[+] - Criando ponto de restauração do sistema..." -ForegroundColor White
     $srStatus = Get-Service -Name 'vss' -ErrorAction SilentlyContinue
     if ($srStatus.Status -ne 'Running') {
         Start-Service -Name 'vss' -ErrorAction SilentlyContinue
@@ -369,7 +369,6 @@ function Clean-TempFiles {
         "$env:userprofile\AppData\Local\Microsoft\Windows\INetCookies\*",
         "$env:userprofile\AppData\Local\Microsoft\Windows\History\*"
     )
-
     Write-Host "[+] - Limpando arquivos temporários..." -ForegroundColor Green
     foreach ($path in $pathsToClean) {
         try {
@@ -407,6 +406,16 @@ function Remove-FilesFrom {
         Write-Host "[!] - Caminho não encontrado: $Path" -ForegroundColor Red
     }
 }
+
+$tempPath = $env:TEMP
+$winTemp = "C:\Windows\Temp"
+Remove-Item -Path $tempPath -Recurse -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Path $tempPath -Force | Out-Null
+takeown.exe /f "$tempPath" /r /d y
+takeown.exe /f "$winTemp" /r /d y
+Remove-Item -Path $winTemp -Recurse -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Path $winTemp -Force | Out-Null
+Get-ChildItem -Path . -Recurse -Include *.log | Remove-Item -Force -ErrorAction SilentlyContinue
 Remove-FilesFrom -Path $env:TEMP
 Remove-FilesFrom -Path "C:\Windows\Temp"
 Remove-FilesFrom -Path "C:\Windows\Prefetch"
@@ -1403,16 +1412,6 @@ switch ($input.ToUpper()) {
         Write-Host "`n[!] - Opção inválida." -ForegroundColor Red
     }
 }
-
-$tempPath = $env:TEMP
-$winTemp = "C:\Windows\Temp"
-Remove-Item -Path $tempPath -Recurse -Force -ErrorAction SilentlyContinue
-New-Item -ItemType Directory -Path $tempPath -Force | Out-Null
-takeown.exe /f "$tempPath" /r /d y
-takeown.exe /f "$winTemp" /r /d y
-Remove-Item -Path $winTemp -Recurse -Force -ErrorAction SilentlyContinue
-New-Item -ItemType Directory -Path $winTemp -Force | Out-Null
-Get-ChildItem -Path . -Recurse -Include *.log | Remove-Item -Force -ErrorAction SilentlyContinue
 Stop-Process -Name explorer -Force
 Start-Process explorer.exe
 
