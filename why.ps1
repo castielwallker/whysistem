@@ -1,7 +1,5 @@
 #requires -RunAsAdministrator
-$Host.UI.RawUI.WindowTitle = "Why - ? ? ? ?"
 $Host.UI.RawUI.WindowTitle = "Why - Maad"
-$Host.UI.RawUI.WindowTitle = "Why - ? ? ? ?"
 $Host.UI.RawUI.BackgroundColor = "Black"
 $Host.UI.RawUI.ForegroundColor = "White"
 Clear-Host
