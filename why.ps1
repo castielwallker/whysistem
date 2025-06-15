@@ -183,6 +183,65 @@ CriarPontoDeRestauracao
 Clear-Host
 
 #Other Function 
+# Lista de jogos
+$games = @(
+    "FortniteClient-Win64-Shipping.exe",
+    "GTA5.exe",
+    "FiveM_b2372_GTAProcess.exe",
+    "cs2.exe",
+    "javaw.exe",
+    "VALORANT-Win64-Shipping.exe",
+    "LeagueClient.exe",
+    "cod.exe",
+    "r5apex.exe",
+    "RobloxPlayerBeta.exe",
+    "GoW.exe",
+    "GoWRagnarok.exe",
+    "Multi Theft Auto.exe",
+    "gta_sa.exe",
+    "eurotrucks.exe",
+    "ets2.exe",
+    "RainbowSix.exe",
+    "CultOfTheLamb.exe",
+    "ULTRAKILL.exe",
+    "BloodStrike.exe",
+    "ArenaBreakout.exe",
+    "re4.exe",
+    "re2.exe",
+    "re8.exe",
+    "HD-Player.exe",
+    "BF2042.exe",
+    "bf4.exe",
+    "tlou-i.exe",
+    "tlou-ii.exe",
+    "tslgame.exe",
+    "RocketLeague.exe",
+    "Cyberpunk2077.exe",
+    "Terraria.exe",
+    "RDR2.exe"
+)
+
+foreach ($game in $games) {
+    $policyName = "QoS_$($game.Replace('.exe',''))"
+    Write-Host "[+] - Criando política para melhorar de rede: $policyName"
+
+    New-NetQosPolicy -Name $policyName `
+        -AppPathNameMatchCondition "*\$game" `
+        -IPProtocolMatchCondition Both `
+        -DSCPAction 46 `
+        -ThrottleRateActionBitsPerSecond 0 `
+        -PolicyStore Local
+}
+
+#Adapter
+$adapter = Get-NetAdapter | Where-Object {$_.Status -eq "Up"}
+Set-NetAdapterAdvancedProperty -Name $adapter.Name -DisplayName "Energy-Efficient Ethernet" -DisplayValue "Disabled" -NoRestart
+Set-NetAdapterAdvancedProperty -Name $adapter.Name -DisplayName "Interrupt Moderation" -DisplayValue "Disabled" -NoRestart
+Set-NetAdapterAdvancedProperty -Name $adapter.Name -DisplayName "Speed & Duplex" -DisplayValue "1.0 Gbps Full Duplex" -NoRestart
+$nic = Get-WmiObject -Namespace root\wmi -Class MSPower_DeviceEnable -Filter "InstanceName LIKE '%PCIe%'"
+$nic.Enable = $false
+$nic.psbase.Put()
+
 Clear-Host
 function Set-GamePriority {
     param (
